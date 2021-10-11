@@ -10,7 +10,6 @@ import torch.utils.data
 
 class FairseqDataset(torch.utils.data.Dataset):
     """A dataset that provides helpers for batching."""
-
     def __getitem__(self, index):
         raise NotImplementedError
 

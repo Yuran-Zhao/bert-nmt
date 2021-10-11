@@ -35,7 +35,6 @@ class BlockPairDataset(FairseqDataset):
         doc_break_size: Size for empty line separating documents. Typically 1 if
                         the sentences have eos, 0 otherwise.
     """
-
     def __init__(
         self,
         dataset,
@@ -65,8 +64,7 @@ class BlockPairDataset(FairseqDataset):
             for sent_id, sz in enumerate(sizes):
                 assert doc_break_size == 0 or sz != 0, (
                     "when doc_break_size is non-zero, we expect documents to be"
-                    "separated by a blank line with a single eos."
-                )
+                    "separated by a blank line with a single eos.")
                 # empty line as document separator
                 if sz == doc_break_size:
                     if len(cur_doc) == 0:
@@ -108,15 +106,13 @@ class BlockPairDataset(FairseqDataset):
         """
         # pair sentences
         for sent_id, sent in enumerate(dataset_index):
-            next_sent_label = (
-                1 if np.random.rand() > 0.5 and sent_id != len(dataset_index) - 1 else 0
-            )
+            next_sent_label = (1 if np.random.rand() > 0.5
+                               and sent_id != len(dataset_index) - 1 else 0)
             if next_sent_label:
                 next_sent = dataset_index[sent_id + 1]
             else:
-                next_sent = dataset_index[
-                    self._skip_sampling(len(dataset_index), [sent_id, sent_id + 1])
-                ]
+                next_sent = dataset_index[self._skip_sampling(
+                    len(dataset_index), [sent_id, sent_id + 1])]
             self.sent_pairs.append((sent, next_sent, next_sent_label))
 
             # The current blocks don't include the special tokens but the
@@ -141,14 +137,12 @@ class BlockPairDataset(FairseqDataset):
                 ds_idx += 1
                 ds_remaining = sent_sizes[ds_idx]
             ds_remaining -= to_consume
-            dataset_index.append(
-                (
-                    start_ds_idx,  # starting index in dataset
-                    start_offset,  # starting offset within starting index
-                    ds_idx,  # ending index in dataset
-                    sent_size,  # sentence length
-                )
-            )
+            dataset_index.append((
+                start_ds_idx,  # starting index in dataset
+                start_offset,  # starting offset within starting index
+                ds_idx,  # ending index in dataset
+                sent_size,  # sentence length
+            ))
         assert ds_remaining == 0
         assert ds_idx == len(self.dataset) - 1
         return dataset_index
@@ -182,13 +176,13 @@ class BlockPairDataset(FairseqDataset):
                 len_a = sum(sizes[sent_a])
                 # generate next sentence label, note that if there is only 1 sentence
                 # in current chunk, label is always 0
-                next_sent_label = (
-                    1 if np.random.rand() > 0.5 and len(current_chunk) != 1 else 0
-                )
+                next_sent_label = (1 if np.random.rand() > 0.5
+                                   and len(current_chunk) != 1 else 0)
                 if not next_sent_label:
                     # if next sentence label is 0, sample sent_b from a random doc
                     target_b_length = target_seq_length - len_a
-                    rand_doc_id = self._skip_sampling(len(self.block_indices), [doc_id])
+                    rand_doc_id = self._skip_sampling(len(self.block_indices),
+                                                      [doc_id])
                     random_doc = self.block_indices[rand_doc_id]
                     random_start = np.random.randint(0, len(random_doc))
                     sent_b = []
@@ -208,8 +202,7 @@ class BlockPairDataset(FairseqDataset):
                 # currently sent_a and sent_B may be longer than max_num_tokens,
                 # truncate them and return block idx and offsets for them
                 sent_a, sent_b = self._truncate_sentences(
-                    sent_a, sent_b, max_num_tokens
-                )
+                    sent_a, sent_b, max_num_tokens)
                 self.sent_pairs.append((sent_a, sent_b, next_sent_label))
                 self.sizes.append(3 + sent_a[3] + sent_b[3])
                 current_chunk = []
@@ -232,13 +225,13 @@ class BlockPairDataset(FairseqDataset):
         Returns:
             Truncated sentences represented by dataset idx
         """
-        len_a, len_b = sum(self.dataset.sizes[sent_a]), sum(self.dataset.sizes[sent_b])
+        len_a, len_b = sum(self.dataset.sizes[sent_a]), sum(
+            self.dataset.sizes[sent_b])
         front_cut_a = front_cut_b = end_cut_a = end_cut_b = 0
 
         while True:
-            total_length = (
-                len_a + len_b - front_cut_a - front_cut_b - end_cut_a - end_cut_b
-            )
+            total_length = (len_a + len_b - front_cut_a - front_cut_b -
+                            end_cut_a - end_cut_b)
             if total_length <= max_num_tokens:
                 break
 
@@ -285,8 +278,7 @@ class BlockPairDataset(FairseqDataset):
         Fetch a block of tokens based on its dataset idx
         """
         buffer = torch.cat(
-            [self.dataset[idx] for idx in range(start_ds_idx, end_ds_idx + 1)]
-        )
+            [self.dataset[idx] for idx in range(start_ds_idx, end_ds_idx + 1)])
         s, e = offset, offset + length
         return buffer[s:e]
 

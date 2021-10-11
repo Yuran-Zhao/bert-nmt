@@ -92,20 +92,30 @@ def sequence_generator_setup():
             # eos      w1   w2       prefix
             # sentence 1:
             [0.0, unk, 0.1, 0.9],  # w2 w1: 0.1*0.9
-            [0.6, unk, 0.2, 0.2],  # w2 w2: 0.1*0.1  (emit: w2 w2 <eos>: 0.1*0.1*0.6)
+            [0.6, unk, 0.2,
+             0.2],  # w2 w2: 0.1*0.1  (emit: w2 w2 <eos>: 0.1*0.1*0.6)
             # sentence 2:
-            [0.60, unk, 0.4, 0.00],  # w1 w2: 0.7*0.4  (emit: w1 w2 <eos>: 0.7*0.4*0.6)
+            [0.60, unk, 0.4,
+             0.00],  # w1 w2: 0.7*0.4  (emit: w1 w2 <eos>: 0.7*0.4*0.6)
             [0.01, unk, 0.0, 0.99],  # w2 w2: 0.3*0.9
         ]),
         # step 3:
         torch.FloatTensor([
             # eos      w1   w2       prefix
             # sentence 1:
-            [1.0, unk, 0.0, 0.0],  # w2 w1 w2: 0.1*0.9*0.9  (emit: w2 w1 w2 <eos>: 0.1*0.9*0.9*1.0)
-            [1.0, unk, 0.0, 0.0],  # w2 w1 w1: 0.1*0.9*0.1  (emit: w2 w1 w1 <eos>: 0.1*0.9*0.1*1.0)
+            [
+                1.0, unk, 0.0, 0.0
+            ],  # w2 w1 w2: 0.1*0.9*0.9  (emit: w2 w1 w2 <eos>: 0.1*0.9*0.9*1.0)
+            [
+                1.0, unk, 0.0, 0.0
+            ],  # w2 w1 w1: 0.1*0.9*0.1  (emit: w2 w1 w1 <eos>: 0.1*0.9*0.1*1.0)
             # sentence 2:
-            [0.1, unk, 0.5, 0.4],  # w2 w2 w2: 0.3*0.9*0.99  (emit: w2 w2 w2 <eos>: 0.3*0.9*0.99*0.1)
-            [1.0, unk, 0.0, 0.0],  # w1 w2 w1: 0.7*0.4*0.4  (emit: w1 w2 w1 <eos>: 0.7*0.4*0.4*1.0)
+            [
+                0.1, unk, 0.5, 0.4
+            ],  # w2 w2 w2: 0.3*0.9*0.99  (emit: w2 w2 w2 <eos>: 0.3*0.9*0.99*0.1)
+            [
+                1.0, unk, 0.0, 0.0
+            ],  # w1 w2 w1: 0.7*0.4*0.4  (emit: w1 w2 w1 <eos>: 0.7*0.4*0.4*1.0)
         ]),
     ]
 
@@ -117,7 +127,6 @@ def sequence_generator_setup():
 
 
 class TestDataset(torch.utils.data.Dataset):
-
     def __init__(self, data):
         super().__init__()
         self.data = data
@@ -131,7 +140,6 @@ class TestDataset(torch.utils.data.Dataset):
 
 
 class TestTranslationTask(FairseqTask):
-
     def __init__(self, args, src_dict, tgt_dict, model):
         super().__init__(args)
         self.src_dict = src_dict
@@ -184,7 +192,10 @@ class TestIncrementalDecoder(FairseqIncrementalDecoder):
         args.max_decoder_positions = getattr(args, 'max_decoder_positions', 100)
         self.args = args
 
-    def forward(self, prev_output_tokens, encoder_out=None, incremental_state=None):
+    def forward(self,
+                prev_output_tokens,
+                encoder_out=None,
+                incremental_state=None):
         if incremental_state is not None:
             prev_output_tokens = prev_output_tokens[:, -1:]
         bbsz = prev_output_tokens.size(0)
@@ -198,7 +209,8 @@ class TestIncrementalDecoder(FairseqIncrementalDecoder):
             step = utils.get_incremental_state(self, incremental_state, 'step')
             if step is None:
                 step = 0
-            utils.set_incremental_state(self, incremental_state, 'step', step + 1)
+            utils.set_incremental_state(self, incremental_state, 'step',
+                                        step + 1)
             steps = [step]
         else:
             steps = list(range(tgt_len))
@@ -214,7 +226,8 @@ class TestIncrementalDecoder(FairseqIncrementalDecoder):
                 # args.beam_probs gives the probability for every vocab element,
                 # starting with eos, then unknown, and then the rest of the vocab
                 if step < len(self.args.beam_probs):
-                    probs[:, i, self.dictionary.eos():] = self.args.beam_probs[step]
+                    probs[:, i,
+                          self.dictionary.eos():] = self.args.beam_probs[step]
                 else:
                     probs[:, i, self.dictionary.eos()] = 1.0
 

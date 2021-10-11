@@ -29,7 +29,6 @@ class MultiCorpusSampledDataset(FairseqDataset):
         sampling_func: A function for sampling over list of dataset keys.
                 Default strategy is to sample uniformly.
     """
-
     def __init__(
         self,
         datasets: Dict[str, FairseqDataset],
@@ -62,12 +61,10 @@ class MultiCorpusSampledDataset(FairseqDataset):
         as we would have from using the underlying dataset directly.
         """
         if self._ordered_indices is None:
-            self._ordered_indices = OrderedDict(
-                [
-                    (key, dataset.ordered_indices())
-                    for key, dataset in self.datasets.items()
-                ]
-            )
+            self._ordered_indices = OrderedDict([
+                (key, dataset.ordered_indices())
+                for key, dataset in self.datasets.items()
+            ])
         return np.arange(len(self))
 
     def _map_index_to_dataset(self, key: int, index: int):
@@ -77,9 +74,8 @@ class MultiCorpusSampledDataset(FairseqDataset):
         size, we wrap around. This function should be called after we have
         created an ordering for this and all underlying datasets.
         """
-        assert (
-            self._ordered_indices is not None
-        ), "Must call MultiCorpusSampledDataset.ordered_indices() first"
+        assert (self._ordered_indices is not None
+                ), "Must call MultiCorpusSampledDataset.ordered_indices() first"
         mapped_index = index % len(self.datasets[key])
         return self._ordered_indices[key][mapped_index]
 
@@ -89,12 +85,9 @@ class MultiCorpusSampledDataset(FairseqDataset):
         Since index is in the range of [0, TotalNumInstances], we need to
         map the index to the dataset before retrieving the item.
         """
-        return OrderedDict(
-            [
-                (key, dataset[self._map_index_to_dataset(key, index)])
-                for key, dataset in self.datasets.items()
-            ]
-        )
+        return OrderedDict([(key,
+                             dataset[self._map_index_to_dataset(key, index)])
+                            for key, dataset in self.datasets.items()])
 
     def collater(self, samples: List[Dict]):
         """
@@ -119,8 +112,7 @@ class MultiCorpusSampledDataset(FairseqDataset):
         """
         return max(
             dataset.num_tokens(self._map_index_to_dataset(key, index))
-            for key, dataset in self.datasets.items()
-        )
+            for key, dataset in self.datasets.items())
 
     def size(self, index: int):
         """
@@ -130,18 +122,15 @@ class MultiCorpusSampledDataset(FairseqDataset):
         """
         return max(
             dataset.size(self._map_index_to_dataset(key, index))
-            for key, dataset in self.datasets.items()
-        )
+            for key, dataset in self.datasets.items())
 
     @property
     def supports_prefetch(self):
         return all(
             getattr(dataset, "supports_prefetch", False)
-            for dataset in self.datasets.values()
-        )
+            for dataset in self.datasets.values())
 
     def prefetch(self, indices):
         for key, dataset in self.datasets.items():
             dataset.prefetch(
-                [self._map_index_to_dataset(key, index) for index in indices]
-            )
+                [self._map_index_to_dataset(key, index) for index in indices])

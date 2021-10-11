@@ -31,17 +31,26 @@ class MaskedLMTask(FairseqTask):
     Args:
         dictionary (Dictionary): the dictionary for the input of the task
     """
-
     @staticmethod
     def add_args(parser):
         """Add task-specific arguments to the parser."""
-        parser.add_argument('data', help='colon separated path to data directories list, \
-                            will be iterated upon during epochs in round-robin manner')
-        parser.add_argument('--tokens-per-sample', default=512, type=int,
+        parser.add_argument(
+            'data',
+            help='colon separated path to data directories list, \
+                            will be iterated upon during epochs in round-robin manner'
+        )
+        parser.add_argument('--tokens-per-sample',
+                            default=512,
+                            type=int,
                             help='max number of total tokens over all segments'
-                                 ' per sample for BERT dataset')
-        parser.add_argument('--break-mode', default="doc", type=str, help='mode for breaking sentence')
-        parser.add_argument('--shuffle-dataset', action='store_true', default=False)
+                            ' per sample for BERT dataset')
+        parser.add_argument('--break-mode',
+                            default="doc",
+                            type=str,
+                            help='mode for breaking sentence')
+        parser.add_argument('--shuffle-dataset',
+                            action='store_true',
+                            default=False)
 
     def __init__(self, args, dictionary):
         super().__init__(args)
@@ -53,11 +62,19 @@ class MaskedLMTask(FairseqTask):
         return BertDictionary.load(filename)
 
     @classmethod
-    def build_dictionary(cls, filenames, workers=1, threshold=-1, nwords=-1, padding_factor=8):
+    def build_dictionary(cls,
+                         filenames,
+                         workers=1,
+                         threshold=-1,
+                         nwords=-1,
+                         padding_factor=8):
         d = BertDictionary()
         for filename in filenames:
-            Dictionary.add_file_to_dictionary(filename, d, tokenizer.tokenize_line, workers)
-        d.finalize(threshold=threshold, nwords=nwords, padding_factor=padding_factor)
+            Dictionary.add_file_to_dictionary(filename, d,
+                                              tokenizer.tokenize_line, workers)
+        d.finalize(threshold=threshold,
+                   nwords=nwords,
+                   padding_factor=padding_factor)
         return d
 
     @property
@@ -101,7 +118,8 @@ class MaskedLMTask(FairseqTask):
                 if k > 0:
                     break
                 else:
-                    raise FileNotFoundError('Dataset not found: {} ({})'.format(split, data_path))
+                    raise FileNotFoundError('Dataset not found: {} ({})'.format(
+                        split, data_path))
 
             with data_utils.numpy_seed(self.seed + k):
                 loaded_datasets.append(
@@ -112,10 +130,10 @@ class MaskedLMTask(FairseqTask):
                         self.args.tokens_per_sample,
                         break_mode=self.args.break_mode,
                         doc_break_size=1,
-                    )
-                )
+                    ))
 
-            print('| {} {} {} examples'.format(data_path, split_k, len(loaded_datasets[-1])))
+            print('| {} {} {} examples'.format(data_path, split_k,
+                                               len(loaded_datasets[-1])))
 
             if not combine:
                 break

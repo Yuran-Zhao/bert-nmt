@@ -9,13 +9,11 @@
 from setuptools import setup, find_packages, Extension
 import sys
 
-
-if sys.version_info < (3,):
+if sys.version_info < (3, ):
     sys.exit('Sorry, Python3 is required for fairseq.')
 
 with open('README.md') as f:
     readme = f.read()
-
 
 bleu = Extension(
     'fairseq.libbleu',
@@ -25,7 +23,6 @@ bleu = Extension(
     ],
     extra_compile_args=['-std=c++11'],
 )
-
 
 setup(
     name='fairseq',
@@ -41,13 +38,7 @@ setup(
     ],
     long_description=readme,
     install_requires=[
-        'cffi',
-        'numpy',
-        'sacrebleu',
-        'torch',
-        'tqdm',
-        'boto3',
-        'requests'
+        'cffi', 'numpy', 'sacrebleu', 'torch', 'tqdm', 'boto3', 'requests'
     ],
     packages=find_packages(exclude=['scripts', 'tests']),
     ext_modules=[bleu],

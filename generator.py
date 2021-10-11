@@ -21,7 +21,6 @@ Batch = namedtuple('Batch', 'ids src_tokens src_lengths')
 
 
 class Generator(object):
-
     def __init__(self, task, models, args, src_bpe=None, bpe_symbol='@@ '):
         self.task = task
         self.models = models
@@ -34,7 +33,8 @@ class Generator(object):
         # optimize model for generation
         for model in self.models:
             model.make_generation_fast_(
-                beamable_mm_beam_size=None if self.args.no_beamable_mm else self.args.beam,
+                beamable_mm_beam_size=None
+                if self.args.no_beamable_mm else self.args.beam,
                 need_attn=args.print_alignment,
             )
             if args.fp16:
@@ -50,8 +50,7 @@ class Generator(object):
 
         self.max_positions = utils.resolve_max_positions(
             self.task.max_positions(),
-            *[model.max_positions() for model in models]
-        )
+            *[model.max_positions() for model in models])
 
         self.in_transforms = []
         self.out_transforms = []
@@ -59,35 +58,44 @@ class Generator(object):
         if getattr(args, 'moses', False):
             tokenizer = MosesTokenizer(lang=args.source_lang or 'en')
             detokenizer = MosesDetokenizer(lang=args.target_lang or 'en')
-            self.in_transforms.append(lambda s: tokenizer.tokenize(s, return_str=True))
-            self.out_transforms.append(lambda s: detokenizer.detokenize(s.split()))
+            self.in_transforms.append(
+                lambda s: tokenizer.tokenize(s, return_str=True))
+            self.out_transforms.append(
+                lambda s: detokenizer.detokenize(s.split()))
         elif getattr(args, 'nltk', False):
             from nltk.tokenize import word_tokenize
             self.in_transforms.append(lambda s: ' '.join(word_tokenize(s)))
 
         if getattr(args, 'gpt2_bpe', False):
             from fairseq.gpt2_bpe.gpt2_encoding import get_encoder
-            encoder_json = os.path.join(os.path.dirname(src_bpe), 'encoder.json')
+            encoder_json = os.path.join(os.path.dirname(src_bpe),
+                                        'encoder.json')
             vocab_bpe = src_bpe
             encoder = get_encoder(encoder_json, vocab_bpe)
-            self.in_transforms.append(lambda s: ' '.join(map(str, encoder.encode(s))))
-            self.out_transforms.append(lambda s: ' '.join(t for t in s.split() if t != '<unk>'))
-            self.out_transforms.append(lambda s: encoder.decode(map(int, s.strip().split())))
+            self.in_transforms.append(
+                lambda s: ' '.join(map(str, encoder.encode(s))))
+            self.out_transforms.append(
+                lambda s: ' '.join(t for t in s.split() if t != '<unk>'))
+            self.out_transforms.append(
+                lambda s: encoder.decode(map(int,
+                                             s.strip().split())))
         elif getattr(args, 'sentencepiece', False):
             import sentencepiece as spm
             sp = spm.SentencePieceProcessor()
             sp.Load(src_bpe)
             self.in_transforms.append(lambda s: ' '.join(sp.EncodeAsPieces(s)))
-            self.out_transforms.append(lambda s: data_utils.process_bpe_symbol(s, 'sentencepiece'))
+            self.out_transforms.append(
+                lambda s: data_utils.process_bpe_symbol(s, 'sentencepiece'))
         elif src_bpe is not None:
             bpe_parser = apply_bpe.create_parser()
             bpe_args = bpe_parser.parse_args(['--codes', self.src_bpe])
-            bpe = apply_bpe.BPE(bpe_args.codes, bpe_args.merges, bpe_args.separator, None, bpe_args.glossaries)
+            bpe = apply_bpe.BPE(bpe_args.codes, bpe_args.merges,
+                                bpe_args.separator, None, bpe_args.glossaries)
             self.in_transforms.append(lambda s: bpe.process_line(s))
-            self.out_transforms.append(lambda s: data_utils.process_bpe_symbol(s, bpe_symbol))
+            self.out_transforms.append(
+                lambda s: data_utils.process_bpe_symbol(s, bpe_symbol))
 
     def generate(self, src_str, verbose=False):
-
         def preprocess(s):
             for transform in self.in_transforms:
                 s = transform(s)
@@ -100,7 +108,8 @@ class Generator(object):
 
         src_str = preprocess(src_str)
 
-        for batch in self.make_batches([src_str], self.args, self.task, self.max_positions):
+        for batch in self.make_batches([src_str], self.args, self.task,
+                                       self.max_positions):
             src_tokens = batch.src_tokens
             src_lengths = batch.src_lengths
             if self.use_cuda:
@@ -113,7 +122,8 @@ class Generator(object):
                     'src_lengths': src_lengths,
                 },
             }
-            translations = self.task.inference_step(self.generator, self.models, sample)
+            translations = self.task.inference_step(self.generator, self.models,
+                                                    sample)
             src_tokens = utils.strip_pad(src_tokens, self.tgt_dict.pad())
 
         if self.src_dict is not None:
@@ -127,25 +137,32 @@ class Generator(object):
             hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
                 hypo_tokens=hypo['tokens'].int().cpu(),
                 src_str=src_str,
-                alignment=hypo['alignment'].int().cpu() if hypo['alignment'] is not None else None,
+                alignment=hypo['alignment'].int().cpu()
+                if hypo['alignment'] is not None else None,
                 align_dict=self.align_dict,
                 tgt_dict=self.tgt_dict,
             )
             hypo_str = postprocess(hypo_str)
             if verbose:
                 print('H\t{}\t{}'.format(hypo['score'], hypo_str))
-                print('P\t{}'.format(
-                    ' '.join(map(lambda x: '{:.4f}'.format(x), hypo['positional_scores'].tolist()))
-                ))
+                print('P\t{}'.format(' '.join(
+                    map(lambda x: '{:.4f}'.format(x),
+                        hypo['positional_scores'].tolist()))))
                 if self.args.print_alignment:
-                    print('A\t{}'.format(
-                        ' '.join(map(lambda x: str(utils.item(x)), alignment))
-                    ))
+                    print('A\t{}'.format(' '.join(
+                        map(lambda x: str(utils.item(x)), alignment))))
 
         return html.unescape(hypo_str)
 
     @classmethod
-    def from_pretrained(cls, parser, *args, model_name_or_path, data_name_or_path, checkpoint_file='model.pt', extra_task_args=None, **kwargs):
+    def from_pretrained(cls,
+                        parser,
+                        *args,
+                        model_name_or_path,
+                        data_name_or_path,
+                        checkpoint_file='model.pt',
+                        extra_task_args=None,
+                        **kwargs):
         from fairseq import file_utils
 
         model_path = file_utils.load_archive_file(model_name_or_path)
@@ -157,8 +174,8 @@ class Generator(object):
         # set data and parse
         model_args = options.parse_args_and_arch(
             parser,
-            input_args=[data_path, '--task', task_name] + (extra_task_args or [])
-        )
+            input_args=[data_path, '--task', task_name] +
+            (extra_task_args or []))
 
         # override any kwargs passed in
         if kwargs is not None:
@@ -195,11 +212,13 @@ class Generator(object):
                 src_bpe = path
                 break
 
-        return cls(task, model, model_args, src_bpe, kwargs.get('remove_bpe', '@@ '))
+        return cls(task, model, model_args, src_bpe,
+                   kwargs.get('remove_bpe', '@@ '))
 
     def make_batches(self, lines, args, task, max_positions):
         tokens = [
-            task.source_dictionary.encode_line(src_str, add_if_not_exist=False).long()
+            task.source_dictionary.encode_line(src_str,
+                                               add_if_not_exist=False).long()
             for src_str in lines
         ]
         lengths = torch.LongTensor([t.numel() for t in tokens])
@@ -212,5 +231,6 @@ class Generator(object):
         for batch in itr:
             yield Batch(
                 ids=batch['id'],
-                src_tokens=batch['net_input']['src_tokens'], src_lengths=batch['net_input']['src_lengths'],
+                src_tokens=batch['net_input']['src_tokens'],
+                src_lengths=batch['net_input']['src_lengths'],
             )

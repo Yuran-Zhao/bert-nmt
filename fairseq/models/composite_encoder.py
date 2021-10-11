@@ -18,7 +18,6 @@ class CompositeEncoder(FairseqEncoder):
     Args:
         encoders (dict): a dictionary of :class:`FairseqEncoder` objects.
     """
-
     def __init__(self, encoders):
         super().__init__(next(iter(encoders.values())).dictionary)
         self.encoders = encoders
@@ -45,11 +44,13 @@ class CompositeEncoder(FairseqEncoder):
     def reorder_encoder_out(self, encoder_out, new_order):
         """Reorder encoder output according to new_order."""
         for key in self.encoders:
-            encoder_out[key] = self.encoders[key].reorder_encoder_out(encoder_out[key], new_order)
+            encoder_out[key] = self.encoders[key].reorder_encoder_out(
+                encoder_out[key], new_order)
         return encoder_out
 
     def max_positions(self):
-        return min([self.encoders[key].max_positions() for key in self.encoders])
+        return min(
+            [self.encoders[key].max_positions() for key in self.encoders])
 
     def upgrade_state_dict(self, state_dict):
         for key in self.encoders:

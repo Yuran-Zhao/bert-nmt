@@ -30,8 +30,14 @@ class TokenBlockDataset(FairseqDataset):
         include_targets (bool, optional): return next tokens as targets
             (default: False).
     """
-
-    def __init__(self, dataset, sizes, block_size, pad, eos, break_mode=None, include_targets=False):
+    def __init__(self,
+                 dataset,
+                 sizes,
+                 block_size,
+                 pad,
+                 eos,
+                 break_mode=None,
+                 include_targets=False):
         super().__init__()
         self.dataset = dataset
         self.pad = pad
@@ -86,13 +92,16 @@ class TokenBlockDataset(FairseqDataset):
             self.block_to_dataset_index = np.stack(
                 [
                     np.arange(len(sizes)),  # starting index in dataset
-                    np.zeros(len(sizes), dtype=np.long),  # starting offset within starting index
+                    np.zeros(
+                        len(sizes),
+                        dtype=np.long),  # starting offset within starting index
                     np.arange(len(sizes))  # ending index in dataset
                 ],
                 1,
             )
         else:
-            self.block_to_dataset_index = np.empty((len(self.slice_indices), 3), dtype=int)
+            self.block_to_dataset_index = np.empty((len(self.slice_indices), 3),
+                                                   dtype=int)
             ds_idx, ds_remaining = -1, 0
             for i, (s, e) in enumerate(self.slice_indices):
                 to_consume = e - s
@@ -115,10 +124,10 @@ class TokenBlockDataset(FairseqDataset):
             assert ds_idx == len(self.dataset) - 1
 
     def __getitem__(self, index):
-        start_ds_idx, start_offset, end_ds_idx = self.block_to_dataset_index[index]
-        buffer = torch.cat([
-            self.dataset[idx] for idx in range(start_ds_idx, end_ds_idx + 1)
-        ])
+        start_ds_idx, start_offset, end_ds_idx = self.block_to_dataset_index[
+            index]
+        buffer = torch.cat(
+            [self.dataset[idx] for idx in range(start_ds_idx, end_ds_idx + 1)])
         slice_s, slice_e = self.slice_indices[index]
         length = slice_e - slice_s
         s, e = start_offset, start_offset + length
@@ -130,11 +139,13 @@ class TokenBlockDataset(FairseqDataset):
             # *past_target* is shifted right by 2 (left-padded as needed)
             if s == 0:
                 source = torch.cat([item.new([self.eos]), buffer[0:e - 1]])
-                past_target = torch.cat([item.new([self.pad, self.eos]), buffer[0:e - 2]])
+                past_target = torch.cat(
+                    [item.new([self.pad, self.eos]), buffer[0:e - 2]])
             else:
                 source = buffer[s - 1:e - 1]
                 if s == 1:
-                    past_target = torch.cat([item.new([self.eos]), buffer[0:e - 2]])
+                    past_target = torch.cat(
+                        [item.new([self.eos]), buffer[0:e - 2]])
                 else:
                     past_target = buffer[s - 2:e - 2]
 
@@ -151,7 +162,7 @@ class TokenBlockDataset(FairseqDataset):
     def prefetch(self, indices):
         self.dataset.prefetch({
             ds_idx
-            for index in indices
-            for start_ds_idx, _, end_ds_idx in [self.block_to_dataset_index[index]]
+            for index in indices for start_ds_idx, _, end_ds_idx in
+            [self.block_to_dataset_index[index]]
             for ds_idx in range(start_ds_idx, end_ds_idx + 1)
         })

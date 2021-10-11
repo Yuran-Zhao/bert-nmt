@@ -15,7 +15,6 @@ from . import FairseqDataset
 
 class LMContextWindowDataset(FairseqDataset):
     """Wraps a MonolingualDataset and provides more context for evaluation."""
-
     def __init__(self, dataset, tokens_per_sample, context_window, pad_idx):
         assert isinstance(dataset, MonolingualDataset)
         assert context_window > 0
@@ -51,11 +50,15 @@ class LMContextWindowDataset(FairseqDataset):
             if extra > 0:
                 self.prev_tokens = self.prev_tokens[extra:]
             pads = np.full(self.context_window - len(self.prev_tokens), pad)
-            new_toks[i] = np.concatenate([self.prev_tokens, toks[i].numpy(), pads])
-            new_tgt[i, len(self.prev_tokens):len(self.prev_tokens) + len(tgt[i])] = tgt[i]
+            new_toks[i] = np.concatenate(
+                [self.prev_tokens, toks[i].numpy(), pads])
+            new_tgt[i,
+                    len(self.prev_tokens):len(self.prev_tokens) +
+                    len(tgt[i])] = tgt[i]
             start_idxs[i] = len(self.prev_tokens)
             lengths[i] += len(self.prev_tokens)
-            self.prev_tokens = new_toks[i][new_toks[i] != pad][-self.context_window:]
+            self.prev_tokens = new_toks[i][
+                new_toks[i] != pad][-self.context_window:]
         sample['net_input']['src_tokens'] = torch.from_numpy(new_toks)
         sample['target'] = torch.from_numpy(new_tgt)
         sample['start_indices'] = start_idxs

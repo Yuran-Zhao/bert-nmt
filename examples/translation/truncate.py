@@ -15,4 +15,3 @@ with io.open(srcfn, 'r', encoding='utf8', newline='\n') as src:
             words = line.strip().split()[:400]
             newline = ' '.join(words)
             print(newline, file=tgt)
-

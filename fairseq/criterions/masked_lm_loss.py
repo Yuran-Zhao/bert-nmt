@@ -5,7 +5,6 @@
 # the root directory of this source tree. An additional grant of patent rights
 # can be found in the PATENTS file in the same directory.
 
-
 import math
 import torch
 import torch.nn.functional as F
@@ -49,7 +48,6 @@ class MaskedLmLoss(FairseqCriterion):
            level loss. The weight of the sentence level loss is specified as
            an argument.
     """
-
     def __init__(self, args, task):
         super().__init__(args, task)
 
@@ -57,11 +55,15 @@ class MaskedLmLoss(FairseqCriterion):
     def add_args(parser):
         """Args for MaskedLM Loss"""
         # Default for masked_lm_only is False so as to not break BERT training
-        parser.add_argument('--masked-lm-only', default=False,
-                            action='store_true', help='compute MLM loss only')
-        parser.add_argument('--nsp-loss-weight', default=1.0, type=float,
+        parser.add_argument('--masked-lm-only',
+                            default=False,
+                            action='store_true',
+                            help='compute MLM loss only')
+        parser.add_argument('--nsp-loss-weight',
+                            default=1.0,
+                            type=float,
                             help='weight for next sentence prediction'
-                                 ' loss (default 1)')
+                            ' loss (default 1)')
 
     def forward(self, model, sample, reduce=True):
         """Compute the loss for the given sample.
@@ -75,8 +77,8 @@ class MaskedLmLoss(FairseqCriterion):
         # reshape lm_logits from (N,T,C) to (N*T,C)
         lm_logits = lm_logits.view(-1, lm_logits.size(-1))
         lm_targets = sample['lm_target'].view(-1)
-        lm_loss = compute_cross_entropy_loss(
-            lm_logits, lm_targets, self.padding_idx)
+        lm_loss = compute_cross_entropy_loss(lm_logits, lm_targets,
+                                             self.padding_idx)
 
         # compute the number of tokens for which loss is computed. This is used
         # to normalize the loss
@@ -111,18 +113,20 @@ class MaskedLmLoss(FairseqCriterion):
         # here sample_size is just used for logging
         sample_size = 1
         logging_output = {
-            'loss': utils.item(loss.data) if reduce else loss.data,
-            'lm_loss': utils.item(lm_loss.data) if reduce else lm_loss.data,
+            'loss':
+            utils.item(loss.data) if reduce else loss.data,
+            'lm_loss':
+            utils.item(lm_loss.data) if reduce else lm_loss.data,
             # sentence loss is not always computed
-            'sentence_loss': (
-                (
-                    utils.item(sentence_loss.data) if reduce
-                    else sentence_loss.data
-                ) if sentence_loss is not None else 0.0
-            ),
-            'ntokens': ntokens,
-            'nsentences': nsentences,
-            'sample_size': sample_size,
+            'sentence_loss':
+            ((utils.item(sentence_loss.data) if reduce else sentence_loss.data)
+             if sentence_loss is not None else 0.0),
+            'ntokens':
+            ntokens,
+            'nsentences':
+            nsentences,
+            'sample_size':
+            sample_size,
         }
         return loss, sample_size, logging_output
 

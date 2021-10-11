@@ -12,13 +12,11 @@ from fairseq import registry
 from fairseq.optim.fairseq_optimizer import FairseqOptimizer
 from fairseq.optim.fp16_optimizer import FP16Optimizer, MemoryEfficientFP16Optimizer
 
-
 __all__ = [
     'FairseqOptimizer',
     'FP16Optimizer',
     'MemoryEfficientFP16Optimizer',
 ]
-
 
 _build_optimizer, register_optimizer, OPTIMIZER_REGISTRY = registry.setup_registry(
     '--optimizer',

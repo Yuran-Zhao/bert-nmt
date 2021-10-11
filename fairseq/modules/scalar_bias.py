@@ -14,7 +14,6 @@ class ScalarBias(torch.autograd.Function):
     Adds a vector of scalars, used in self-attention mechanism to allow
     the model to optionally attend to this vector instead of the past
     """
-
     @staticmethod
     def forward(ctx, input, dim, bias_init):
         size = list(input.size())

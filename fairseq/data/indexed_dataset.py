@@ -83,7 +83,6 @@ def data_file_path(prefix_path):
 
 class IndexedDataset(FairseqDataset):
     """Loader for TorchNet IndexedDataset"""
-
     def __init__(self, path, fix_lua_indexing=False):
         super().__init__()
         self.path = path
@@ -96,10 +95,9 @@ class IndexedDataset(FairseqDataset):
             magic = f.read(8)
             assert magic == b'TNTIDX\x00\x00', (
                 'Index file doesn\'t match expected format. '
-                'Make sure that --dataset-impl is configured properly.'
-            )
+                'Make sure that --dataset-impl is configured properly.')
             version = f.read(8)
-            assert struct.unpack('<Q', version) == (1,)
+            assert struct.unpack('<Q', version) == (1, )
             code, self.element_size = struct.unpack('<QQ', f.read(16))
             self.dtype = dtypes[code]
             self._len, self.s = struct.unpack('<QQ', f.read(16))
@@ -142,9 +140,8 @@ class IndexedDataset(FairseqDataset):
 
     @staticmethod
     def exists(path):
-        return (
-            os.path.exists(index_file_path(path)) and os.path.exists(data_file_path(path))
-        )
+        return (os.path.exists(index_file_path(path))
+                and os.path.exists(data_file_path(path)))
 
     @property
     def supports_prefetch(self):
@@ -152,7 +149,6 @@ class IndexedDataset(FairseqDataset):
 
 
 class IndexedCachedDataset(IndexedDataset):
-
     def __init__(self, path, fix_lua_indexing=False):
         super().__init__(path, fix_lua_indexing=fix_lua_indexing)
         self.cache = None
@@ -177,7 +173,7 @@ class IndexedCachedDataset(IndexedDataset):
         for i in indices:
             self.cache_index[i] = ptx
             size = self.data_offsets[i + 1] - self.data_offsets[i]
-            a = self.cache[ptx: ptx + size]
+            a = self.cache[ptx:ptx + size]
             self.data_file.seek(self.data_offsets[i] * self.element_size)
             self.data_file.readinto(a)
             ptx += size
@@ -191,7 +187,7 @@ class IndexedCachedDataset(IndexedDataset):
         tensor_size = self.sizes[self.dim_offsets[i]:self.dim_offsets[i + 1]]
         a = np.empty(tensor_size, dtype=self.dtype)
         ptx = self.cache_index[i]
-        np.copyto(a, self.cache[ptx: ptx + a.size])
+        np.copyto(a, self.cache[ptx:ptx + a.size])
         item = torch.from_numpy(a).long()
         if self.fix_lua_indexing:
             item -= 1  # subtract 1 for 0-based indexing
@@ -201,7 +197,6 @@ class IndexedCachedDataset(IndexedDataset):
 class IndexedRawTextDataset(FairseqDataset):
     """Takes a text file as input and binarizes it in memory at instantiation.
     Original lines are also kept in memory"""
-
     def __init__(self, path, dictionary, append_eos=True, reverse_order=False):
         self.tokens_list = []
         self.lines = []
@@ -216,8 +211,10 @@ class IndexedRawTextDataset(FairseqDataset):
             for line in f:
                 self.lines.append(line.strip('\n'))
                 tokens = dictionary.encode_line(
-                    line, add_if_not_exist=False,
-                    append_eos=self.append_eos, reverse_order=self.reverse_order,
+                    line,
+                    add_if_not_exist=False,
+                    append_eos=self.append_eos,
+                    reverse_order=self.reverse_order,
                 ).long()
                 self.tokens_list.append(tokens)
                 self.sizes.append(len(tokens))
@@ -273,8 +270,10 @@ class IndexedDatasetBuilder(object):
 
     def add_item(self, tensor):
         # +1 for Lua compatibility
-        bytes = self.out_file.write(np.array(tensor.numpy() + 1, dtype=self.dtype))
-        self.data_offsets.append(self.data_offsets[-1] + bytes / self.element_size)
+        bytes = self.out_file.write(
+            np.array(tensor.numpy() + 1, dtype=self.dtype))
+        self.data_offsets.append(self.data_offsets[-1] +
+                                 bytes / self.element_size)
         for s in tensor.size():
             self.sizes.append(s)
         self.dim_offsets.append(self.dim_offsets[-1] + len(tensor.size()))
@@ -305,7 +304,9 @@ class IndexedDatasetBuilder(object):
         index.write(b'TNTIDX\x00\x00')
         index.write(struct.pack('<Q', 1))
         index.write(struct.pack('<QQ', code(self.dtype), self.element_size))
-        index.write(struct.pack('<QQ', len(self.data_offsets) - 1, len(self.sizes)))
+        index.write(
+            struct.pack('<QQ',
+                        len(self.data_offsets) - 1, len(self.sizes)))
         write_longs(index, self.dim_offsets)
         write_longs(index, self.data_offsets)
         write_longs(index, self.sizes)
@@ -369,10 +370,9 @@ class MMapIndexedDataset(torch.utils.data.Dataset):
                 magic_test = stream.read(9)
                 assert self._HDR_MAGIC == magic_test, (
                     'Index file doesn\'t match expected format. '
-                    'Make sure that --dataset-impl is configured properly.'
-                )
+                    'Make sure that --dataset-impl is configured properly.')
                 version = struct.unpack('<Q', stream.read(8))
-                assert (1,) == version
+                assert (1, ) == version
 
                 dtype_code, = struct.unpack('<B', stream.read(1))
                 self._dtype = dtypes[dtype_code]
@@ -384,8 +384,13 @@ class MMapIndexedDataset(torch.utils.data.Dataset):
             _warmup_mmap_file(path)
 
             self._bin_buffer = memoryview(np.memmap(path, mode='r', order='C'))
-            self._sizes = np.frombuffer(self._bin_buffer, dtype=np.int32, count=self._len, offset=offset)
-            self._pointers = np.frombuffer(self._bin_buffer, dtype=np.int64, count=self._len,
+            self._sizes = np.frombuffer(self._bin_buffer,
+                                        dtype=np.int32,
+                                        count=self._len,
+                                        offset=offset)
+            self._pointers = np.frombuffer(self._bin_buffer,
+                                           dtype=np.int64,
+                                           count=self._len,
                                            offset=offset + self._sizes.nbytes)
 
         @property
@@ -422,14 +427,19 @@ class MMapIndexedDataset(torch.utils.data.Dataset):
         self._index = self.Index(index_file_path(self._path))
 
         _warmup_mmap_file(data_file_path(self._path))
-        self._bin_buffer = memoryview(np.memmap(data_file_path(self._path), mode='r', order='C'))
+        self._bin_buffer = memoryview(
+            np.memmap(data_file_path(self._path), mode='r', order='C'))
 
     def __len__(self):
         return len(self._index)
 
     def __getitem__(self, i):
         ptr, size = self._index[i]
-        tensor = torch.from_numpy(np.frombuffer(self._bin_buffer, dtype=self._index.dtype, count=size, offset=ptr))
+        tensor = torch.from_numpy(
+            np.frombuffer(self._bin_buffer,
+                          dtype=self._index.dtype,
+                          count=size,
+                          offset=ptr))
         if tensor.dtype == torch.int64:
             return tensor
         else:
@@ -445,9 +455,8 @@ class MMapIndexedDataset(torch.utils.data.Dataset):
 
     @staticmethod
     def exists(path):
-        return (
-            os.path.exists(index_file_path(path)) and os.path.exists(data_file_path(path))
-        )
+        return (os.path.exists(index_file_path(path))
+                and os.path.exists(data_file_path(path)))
 
 
 class MMapIndexedDatasetBuilder(object):

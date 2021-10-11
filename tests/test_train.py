@@ -36,13 +36,22 @@ def mock_dict():
     return d
 
 
-def get_trainer_and_epoch_itr(epoch, epoch_size, num_updates, iterations_in_epoch):
+def get_trainer_and_epoch_itr(epoch, epoch_size, num_updates,
+                              iterations_in_epoch):
     tokens = torch.LongTensor(list(range(epoch_size))).view(1, -1)
     tokens_ds = data.TokenBlockDataset(
-        tokens, sizes=[tokens.size(-1)], block_size=1, pad=0, eos=1, include_targets=False,
+        tokens,
+        sizes=[tokens.size(-1)],
+        block_size=1,
+        pad=0,
+        eos=1,
+        include_targets=False,
     )
     trainer = mock_trainer(epoch, num_updates, iterations_in_epoch)
-    dataset = data.LanguagePairDataset(tokens_ds, tokens_ds.sizes, mock_dict(), shuffle=False)
+    dataset = data.LanguagePairDataset(tokens_ds,
+                                       tokens_ds.sizes,
+                                       mock_dict(),
+                                       shuffle=False)
     epoch_itr = data.EpochBatchIterator(
         dataset=dataset,
         collate_fn=dataset.collater,
@@ -52,7 +61,6 @@ def get_trainer_and_epoch_itr(epoch, epoch_size, num_updates, iterations_in_epoc
 
 
 class TestLoadCheckpoint(unittest.TestCase):
-
     def setUp(self):
         self.args_mock = MagicMock()
         self.args_mock.optimizer_overrides = '{}'
@@ -74,7 +82,8 @@ class TestLoadCheckpoint(unittest.TestCase):
             trainer, epoch_itr = get_trainer_and_epoch_itr(2, 150, 200, 50)
             trainer.get_train_iterator = MagicMock(return_value=epoch_itr)
 
-            _, epoch_itr = checkpoint_utils.load_checkpoint(self.args_mock, trainer)
+            _, epoch_itr = checkpoint_utils.load_checkpoint(
+                self.args_mock, trainer)
 
             self.assertEqual(epoch_itr.epoch, 2)
             self.assertEqual(epoch_itr.iterations_in_epoch, 50)
@@ -103,7 +112,8 @@ class TestLoadCheckpoint(unittest.TestCase):
             trainer, epoch_itr = get_trainer_and_epoch_itr(2, 150, 300, 150)
             trainer.get_train_iterator = MagicMock(return_value=epoch_itr)
 
-            _, epoch_itr = checkpoint_utils.load_checkpoint(self.args_mock, trainer)
+            _, epoch_itr = checkpoint_utils.load_checkpoint(
+                self.args_mock, trainer)
             itr = epoch_itr.next_epoch_itr(shuffle=False)
 
             self.assertEqual(epoch_itr.epoch, 3)
@@ -116,7 +126,8 @@ class TestLoadCheckpoint(unittest.TestCase):
             trainer.get_train_iterator = MagicMock(return_value=epoch_itr)
             self.patches['os.path.isfile'].return_value = False
 
-            _, epoch_itr = checkpoint_utils.load_checkpoint(self.args_mock, trainer)
+            _, epoch_itr = checkpoint_utils.load_checkpoint(
+                self.args_mock, trainer)
             itr = epoch_itr.next_epoch_itr(shuffle=False)
 
             self.assertEqual(epoch_itr.epoch, 1)

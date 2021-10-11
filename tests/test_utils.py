@@ -13,7 +13,6 @@ from fairseq import utils
 
 
 class TestUtils(unittest.TestCase):
-
     def test_convert_padding_direction(self):
         pad = 1
         left_pad = torch.LongTensor([

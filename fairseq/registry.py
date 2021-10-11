@@ -5,7 +5,6 @@
 # the root directory of this source tree. An additional grant of patent rights
 # can be found in the PATENTS file in the same directory.
 
-
 REGISTRIES = {}
 
 
@@ -22,7 +21,8 @@ def setup_registry(
 
     # maintain a registry of all registries
     if registry_name in REGISTRIES:
-        raise ValueError('Canot setup duplicate registry: {}'.format(registry_name))
+        raise ValueError(
+            'Canot setup duplicate registry: {}'.format(registry_name))
     REGISTRIES[registry_name] = {
         'registry': REGISTRY,
         'default': default,
@@ -40,18 +40,19 @@ def setup_registry(
         return builder(args, *extra_args, **extra_kwargs)
 
     def register_x(name):
-
         def register_x_cls(cls):
             if name in REGISTRY:
-                raise ValueError('Cannot register duplicate {} ({})'.format(registry_name, name))
+                raise ValueError('Cannot register duplicate {} ({})'.format(
+                    registry_name, name))
             if cls.__name__ in REGISTRY_CLASS_NAMES:
                 raise ValueError(
                     'Cannot register {} with duplicate class name ({})'.format(
-                        registry_name, cls.__name__,
-                    )
-                )
+                        registry_name,
+                        cls.__name__,
+                    ))
             if base_class is not None and not issubclass(cls, base_class):
-                raise ValueError('{} must extend {}'.format(cls.__name__, base_class.__name__))
+                raise ValueError('{} must extend {}'.format(
+                    cls.__name__, base_class.__name__))
             REGISTRY[name] = cls
             REGISTRY_CLASS_NAMES.add(cls.__name__)
             return cls

@@ -52,8 +52,7 @@ class TestDataNoising(unittest.TestCase):
             ["how", "are", "y@@", "ou"],
         ]
         x, src_lengths = x, src_lengths = self._convert_src_tokens_to_tensor(
-            vocab=vocab, src_tokens=src_tokens, append_eos=append_eos
-        )
+            vocab=vocab, src_tokens=src_tokens, append_eos=append_eos)
         return vocab, x, src_lengths
 
     def _get_test_data_with_bpe_end_marker(self, append_eos=True):
@@ -88,8 +87,7 @@ class TestDataNoising(unittest.TestCase):
             ["how_EOW", "are_EOW", "y", "ou_EOW"],
         ]
         x, src_lengths = x, src_lengths = self._convert_src_tokens_to_tensor(
-            vocab=vocab, src_tokens=src_tokens, append_eos=append_eos
-        )
+            vocab=vocab, src_tokens=src_tokens, append_eos=append_eos)
         return vocab, x, src_lengths
 
     def _get_test_data_with_word_vocab(self, append_eos=True):
@@ -117,13 +115,12 @@ class TestDataNoising(unittest.TestCase):
             ["how", "are", "you", "new", "york"],
         ]
         x, src_lengths = self._convert_src_tokens_to_tensor(
-            vocab=vocab, src_tokens=src_tokens, append_eos=append_eos
-        )
+            vocab=vocab, src_tokens=src_tokens, append_eos=append_eos)
         return vocab, x, src_lengths
 
-    def _convert_src_tokens_to_tensor(
-        self, vocab: Dictionary, src_tokens: List[List[str]], append_eos: bool
-    ):
+    def _convert_src_tokens_to_tensor(self, vocab: Dictionary,
+                                      src_tokens: List[List[str]],
+                                      append_eos: bool):
         src_len = [len(x) for x in src_tokens]
         # If we have to append EOS, we include EOS in counting src length
         if append_eos:
@@ -145,10 +142,9 @@ class TestDataNoising(unittest.TestCase):
             self.assertEqual(
                 x[x_len[i] - 1][i],
                 eos,
-                (
-                    "Expected eos (token id {eos}) at the end of sentence {i} "
-                    "but got {other} instead"
-                ).format(i=i, eos=eos, other=x[i][-1]),
+                ("Expected eos (token id {eos}) at the end of sentence {i} "
+                 "but got {other} instead").format(i=i, eos=eos,
+                                                   other=x[i][-1]),
             )
 
     def assert_word_dropout_correct(self, x, x_noised, x_len, l_noised):
@@ -159,14 +155,16 @@ class TestDataNoising(unittest.TestCase):
             self.assertEqual(x_noised[i][0], x[i + 2][0])
 
     def test_word_dropout_with_eos(self):
-        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(append_eos=True)
+        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(
+            append_eos=True)
 
         with data_utils.numpy_seed(1234):
             noising_gen = noising.WordDropout(vocab)
             x_noised, l_noised = noising_gen.noising(x, x_len, 0.2)
-            self.assert_word_dropout_correct(
-                x=x, x_noised=x_noised, x_len=x_len, l_noised=l_noised
-            )
+            self.assert_word_dropout_correct(x=x,
+                                             x_noised=x_noised,
+                                             x_len=x_len,
+                                             l_noised=l_noised)
             self.assert_eos_at_end(x=x_noised, x_len=l_noised, eos=vocab.eos())
 
     def assert_word_blanking_correct(self, x, x_noised, x_len, l_noised, unk):
@@ -180,14 +178,17 @@ class TestDataNoising(unittest.TestCase):
                 self.assertEqual(x_noised[i][0], x[i][0])
 
     def test_word_blank_with_eos(self):
-        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(append_eos=True)
+        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(
+            append_eos=True)
 
         with data_utils.numpy_seed(1234):
             noising_gen = noising.WordDropout(vocab)
             x_noised, l_noised = noising_gen.noising(x, x_len, 0.2, vocab.unk())
-            self.assert_word_blanking_correct(
-                x=x, x_noised=x_noised, x_len=x_len, l_noised=l_noised, unk=vocab.unk()
-            )
+            self.assert_word_blanking_correct(x=x,
+                                              x_noised=x_noised,
+                                              x_len=x_len,
+                                              l_noised=l_noised,
+                                              unk=vocab.unk())
             self.assert_eos_at_end(x=x_noised, x_len=l_noised, eos=vocab.eos())
 
     def generate_unchanged_shuffle_map(self, length):
@@ -224,12 +225,11 @@ class TestDataNoising(unittest.TestCase):
             bpe_cont_marker = "@@"
 
         with data_utils.numpy_seed(1234):
-            word_shuffle = noising.WordShuffle(
-                vocab, bpe_cont_marker=bpe_cont_marker, bpe_end_marker=bpe_end_marker
-            )
+            word_shuffle = noising.WordShuffle(vocab,
+                                               bpe_cont_marker=bpe_cont_marker,
+                                               bpe_end_marker=bpe_end_marker)
             x_noised, l_noised = word_shuffle.noising(
-                x, x_len, max_shuffle_distance=max_shuffle_distance
-            )
+                x, x_len, max_shuffle_distance=max_shuffle_distance)
 
         # For every example, we have a different expected shuffle map. We check
         # that each example is shuffled as expected according to each
@@ -246,7 +246,8 @@ class TestDataNoising(unittest.TestCase):
             self.assert_eos_at_end(x=x_noised, x_len=l_noised, eos=vocab.eos())
 
     def test_word_shuffle_with_eos(self):
-        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(append_eos=True)
+        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(
+            append_eos=True)
 
         # Assert word shuffle with max shuffle distance 0 causes input to be
         # unchanged
@@ -271,7 +272,12 @@ class TestDataNoising(unittest.TestCase):
             max_shuffle_distance=3,
             expected_shufle_maps=[
                 self.generate_unchanged_shuffle_map(x_len[0]),
-                {0: 0, 1: 3, 2: 1, 3: 2},
+                {
+                    0: 0,
+                    1: 3,
+                    2: 1,
+                    3: 2
+                },
             ],
             expect_eos_at_end=True,
         )
@@ -302,15 +308,27 @@ class TestDataNoising(unittest.TestCase):
             vocab=vocab,
             max_shuffle_distance=3,
             expected_shufle_maps=[
-                {0: 0, 1: 1, 2: 3, 3: 2},
-                {0: 0, 1: 2, 2: 1, 3: 3, 4: 4},
+                {
+                    0: 0,
+                    1: 1,
+                    2: 3,
+                    3: 2
+                },
+                {
+                    0: 0,
+                    1: 2,
+                    2: 1,
+                    3: 3,
+                    4: 4
+                },
             ],
             expect_eos_at_end=True,
         )
 
     def test_word_shuffle_without_eos(self):
         """Same result as word shuffle with eos except no EOS at end"""
-        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(append_eos=False)
+        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(
+            append_eos=False)
 
         # Assert word shuffle with max shuffle distance 0 causes input to be
         # unchanged
@@ -335,14 +353,20 @@ class TestDataNoising(unittest.TestCase):
             max_shuffle_distance=3,
             expected_shufle_maps=[
                 self.generate_unchanged_shuffle_map(x_len[0]),
-                {0: 0, 1: 3, 2: 1, 3: 2},
+                {
+                    0: 0,
+                    1: 3,
+                    2: 1,
+                    3: 2
+                },
             ],
             expect_eos_at_end=False,
         )
 
     def test_word_shuffle_without_eos_with_bpe_end_marker(self):
         """Same result as word shuffle without eos except using BPE end token"""
-        vocab, x, x_len = self._get_test_data_with_bpe_end_marker(append_eos=False)
+        vocab, x, x_len = self._get_test_data_with_bpe_end_marker(
+            append_eos=False)
 
         # Assert word shuffle with max shuffle distance 0 causes input to be
         # unchanged
@@ -368,7 +392,12 @@ class TestDataNoising(unittest.TestCase):
             max_shuffle_distance=3,
             expected_shufle_maps=[
                 self.generate_unchanged_shuffle_map(x_len[0]),
-                {0: 0, 1: 3, 2: 1, 3: 2},
+                {
+                    0: 0,
+                    1: 3,
+                    2: 1,
+                    3: 2
+                },
             ],
             expect_eos_at_end=False,
             bpe_end_marker="_EOW",
@@ -380,37 +409,48 @@ class TestDataNoising(unittest.TestCase):
             self.assertNotEqual(
                 x[x_len[i] - 1][i],
                 eos,
-                "Expected no eos (token id {eos}) at the end of sentence {i}.".format(
-                    eos=eos, i=i
-                ),
+                "Expected no eos (token id {eos}) at the end of sentence {i}.".
+                format(eos=eos, i=i),
             )
 
     def test_word_dropout_without_eos(self):
         """Same result as word dropout with eos except no EOS at end"""
-        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(append_eos=False)
+        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(
+            append_eos=False)
 
         with data_utils.numpy_seed(1234):
             noising_gen = noising.WordDropout(vocab)
             x_noised, l_noised = noising_gen.noising(x, x_len, 0.2)
-            self.assert_word_dropout_correct(
-                x=x, x_noised=x_noised, x_len=x_len, l_noised=l_noised
-            )
-            self.assert_no_eos_at_end(x=x_noised, x_len=l_noised, eos=vocab.eos())
+            self.assert_word_dropout_correct(x=x,
+                                             x_noised=x_noised,
+                                             x_len=x_len,
+                                             l_noised=l_noised)
+            self.assert_no_eos_at_end(x=x_noised,
+                                      x_len=l_noised,
+                                      eos=vocab.eos())
 
     def test_word_blank_without_eos(self):
         """Same result as word blank with eos except no EOS at end"""
-        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(append_eos=False)
+        vocab, x, x_len = self._get_test_data_with_bpe_cont_marker(
+            append_eos=False)
 
         with data_utils.numpy_seed(1234):
             noising_gen = noising.WordDropout(vocab)
             x_noised, l_noised = noising_gen.noising(x, x_len, 0.2, vocab.unk())
-            self.assert_word_blanking_correct(
-                x=x, x_noised=x_noised, x_len=x_len, l_noised=l_noised, unk=vocab.unk()
-            )
-            self.assert_no_eos_at_end(x=x_noised, x_len=l_noised, eos=vocab.eos())
+            self.assert_word_blanking_correct(x=x,
+                                              x_noised=x_noised,
+                                              x_len=x_len,
+                                              l_noised=l_noised,
+                                              unk=vocab.unk())
+            self.assert_no_eos_at_end(x=x_noised,
+                                      x_len=l_noised,
+                                      eos=vocab.eos())
 
     def _get_noising_dataset_batch(
-        self, src_tokens_no_pad, src_dict, append_eos_to_tgt=False,
+        self,
+        src_tokens_no_pad,
+        src_dict,
+        append_eos_to_tgt=False,
     ):
         """
         Constructs a NoisingDataset and the corresponding
@@ -431,11 +471,13 @@ class TestDataNoising(unittest.TestCase):
             noising_class=noising.UnsupervisedMTNoising,
         )
         tgt = src_dataset
-        language_pair_dataset = LanguagePairDataset(
-            src=noising_dataset, tgt=tgt, src_sizes=None, src_dict=src_dict
-        )
+        language_pair_dataset = LanguagePairDataset(src=noising_dataset,
+                                                    tgt=tgt,
+                                                    src_sizes=None,
+                                                    src_dict=src_dict)
         language_pair_dataset = TransformEosDataset(
-            language_pair_dataset, src_dict.eos(),
+            language_pair_dataset,
+            src_dict.eos(),
             append_eos_to_tgt=append_eos_to_tgt,
         )
 
@@ -449,30 +491,25 @@ class TestDataNoising(unittest.TestCase):
 
     def test_noising_dataset_with_eos(self):
         src_dict, src_tokens, _ = self._get_test_data_with_bpe_cont_marker(
-            append_eos=True
-        )
+            append_eos=True)
 
         # Format data for src_dataset
         src_tokens = torch.t(src_tokens)
         src_tokens_no_pad = []
         for src_sentence in src_tokens:
             src_tokens_no_pad.append(
-                utils.strip_pad(tensor=src_sentence, pad=src_dict.pad())
-            )
+                utils.strip_pad(tensor=src_sentence, pad=src_dict.pad()))
         denoising_batch_result = self._get_noising_dataset_batch(
-            src_tokens_no_pad=src_tokens_no_pad, src_dict=src_dict
-        )
+            src_tokens_no_pad=src_tokens_no_pad, src_dict=src_dict)
 
         eos, pad = src_dict.eos(), src_dict.pad()
 
         # Generated noisy source as source
-        expected_src = torch.LongTensor(
-            [[4, 5, 10, 11, 8, 12, 13, eos], [pad, pad, pad, 6, 8, 9, 7, eos]]
-        )
+        expected_src = torch.LongTensor([[4, 5, 10, 11, 8, 12, 13, eos],
+                                         [pad, pad, pad, 6, 8, 9, 7, eos]])
         # Original clean source as target (right-padded)
-        expected_tgt = torch.LongTensor(
-            [[4, 5, 10, 11, 8, 12, 13, eos], [6, 7, 8, 9, eos, pad, pad, pad]]
-        )
+        expected_tgt = torch.LongTensor([[4, 5, 10, 11, 8, 12, 13, eos],
+                                         [6, 7, 8, 9, eos, pad, pad, pad]])
         generated_src = denoising_batch_result["net_input"]["src_tokens"]
         tgt_tokens = denoising_batch_result["target"]
 
@@ -486,16 +523,14 @@ class TestDataNoising(unittest.TestCase):
         """
 
         src_dict, src_tokens, _ = self._get_test_data_with_bpe_cont_marker(
-            append_eos=False
-        )
+            append_eos=False)
 
         # Format data for src_dataset
         src_tokens = torch.t(src_tokens)
         src_tokens_no_pad = []
         for src_sentence in src_tokens:
             src_tokens_no_pad.append(
-                utils.strip_pad(tensor=src_sentence, pad=src_dict.pad())
-            )
+                utils.strip_pad(tensor=src_sentence, pad=src_dict.pad()))
         denoising_batch_result = self._get_noising_dataset_batch(
             src_tokens_no_pad=src_tokens_no_pad,
             src_dict=src_dict,
@@ -505,13 +540,11 @@ class TestDataNoising(unittest.TestCase):
         eos, pad = src_dict.eos(), src_dict.pad()
 
         # Generated noisy source as source
-        expected_src = torch.LongTensor(
-            [[4, 5, 10, 11, 8, 12, 13], [pad, pad, pad, 6, 8, 9, 7]]
-        )
+        expected_src = torch.LongTensor([[4, 5, 10, 11, 8, 12, 13],
+                                         [pad, pad, pad, 6, 8, 9, 7]])
         # Original clean source as target (right-padded)
-        expected_tgt = torch.LongTensor(
-            [[4, 5, 10, 11, 8, 12, 13, eos], [6, 7, 8, 9, eos, pad, pad, pad]]
-        )
+        expected_tgt = torch.LongTensor([[4, 5, 10, 11, 8, 12, 13, eos],
+                                         [6, 7, 8, 9, eos, pad, pad, pad]])
 
         generated_src = denoising_batch_result["net_input"]["src_tokens"]
         tgt_tokens = denoising_batch_result["target"]

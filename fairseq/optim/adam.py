@@ -16,7 +16,6 @@ from . import FairseqOptimizer, register_optimizer
 
 @register_optimizer('adam')
 class FairseqAdam(FairseqOptimizer):
-
     def __init__(self, args, params):
         super().__init__(args, params)
         if torch.cuda.is_available():
@@ -32,11 +31,20 @@ class FairseqAdam(FairseqOptimizer):
     def add_args(parser):
         """Add optimizer-specific arguments to the parser."""
         # fmt: off
-        parser.add_argument('--adam-betas', default='(0.9, 0.999)', metavar='B',
+        parser.add_argument('--adam-betas',
+                            default='(0.9, 0.999)',
+                            metavar='B',
                             help='betas for Adam optimizer')
-        parser.add_argument('--adam-eps', type=float, default=1e-8, metavar='D',
+        parser.add_argument('--adam-eps',
+                            type=float,
+                            default=1e-8,
+                            metavar='D',
                             help='epsilon for Adam optimizer')
-        parser.add_argument('--weight-decay', '--wd', default=0.0, type=float, metavar='WD',
+        parser.add_argument('--weight-decay',
+                            '--wd',
+                            default=0.0,
+                            type=float,
+                            metavar='WD',
                             help='weight decay')
         # fmt: on
 
@@ -82,11 +90,18 @@ class Adam(torch.optim.Optimizer):
     .. _On the Convergence of Adam and Beyond:
         https://openreview.net/forum?id=ryQu7f-RZ
     """
-
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
-                 weight_decay=0, amsgrad=False):
-        defaults = dict(lr=lr, betas=betas, eps=eps,
-                        weight_decay=weight_decay, amsgrad=amsgrad)
+    def __init__(self,
+                 params,
+                 lr=1e-3,
+                 betas=(0.9, 0.999),
+                 eps=1e-8,
+                 weight_decay=0,
+                 amsgrad=False):
+        defaults = dict(lr=lr,
+                        betas=betas,
+                        eps=eps,
+                        weight_decay=weight_decay,
+                        amsgrad=amsgrad)
         super(Adam, self).__init__(params, defaults)
 
     @property
@@ -110,7 +125,9 @@ class Adam(torch.optim.Optimizer):
                     continue
                 grad = p.grad.data.float()
                 if grad.is_sparse:
-                    raise RuntimeError('Adam does not support sparse gradients, please consider SparseAdam instead')
+                    raise RuntimeError(
+                        'Adam does not support sparse gradients, please consider SparseAdam instead'
+                    )
                 amsgrad = group['amsgrad']
 
                 p_data_fp32 = p.data.float()
@@ -129,9 +146,11 @@ class Adam(torch.optim.Optimizer):
                         state['max_exp_avg_sq'] = torch.zeros_like(p_data_fp32)
                 else:
                     state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
+                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(
+                        p_data_fp32)
                     if amsgrad:
-                        state['max_exp_avg_sq'] = state['max_exp_avg_sq'].type_as(p_data_fp32)
+                        state['max_exp_avg_sq'] = state[
+                            'max_exp_avg_sq'].type_as(p_data_fp32)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 if amsgrad:
@@ -151,12 +170,14 @@ class Adam(torch.optim.Optimizer):
                 else:
                     denom = exp_avg_sq.sqrt().add_(group['eps'])
 
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
-                step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
+                bias_correction1 = 1 - beta1**state['step']
+                bias_correction2 = 1 - beta2**state['step']
+                step_size = group['lr'] * math.sqrt(
+                    bias_correction2) / bias_correction1
 
                 if group['weight_decay'] != 0:
-                    p_data_fp32.add_(-group['weight_decay'] * group['lr'], p_data_fp32)
+                    p_data_fp32.add_(-group['weight_decay'] * group['lr'],
+                                     p_data_fp32)
 
                 p_data_fp32.addcdiv_(-step_size, exp_avg, denom)
 
@@ -196,22 +217,31 @@ class FusedAdam(torch.optim.Optimizer):
     .. _On the Convergence of Adam and Beyond:
         https://openreview.net/forum?id=ryQu7f-RZ
     """
-
-    def __init__(self, params,
-                 lr=1e-3, bias_correction = True,
-                 betas=(0.9, 0.999), eps=1e-8, eps_inside_sqrt=False,
-                 weight_decay=0., max_grad_norm=0., amsgrad=False):
+    def __init__(self,
+                 params,
+                 lr=1e-3,
+                 bias_correction=True,
+                 betas=(0.9, 0.999),
+                 eps=1e-8,
+                 eps_inside_sqrt=False,
+                 weight_decay=0.,
+                 max_grad_norm=0.,
+                 amsgrad=False):
         global fused_adam_cuda
         import importlib
         fused_adam_cuda = importlib.import_module("fused_adam_cuda")
 
         if amsgrad:
-            raise RuntimeError('FusedAdam does not support the AMSGrad variant.')
-        defaults = dict(lr=lr, bias_correction=bias_correction,
-                        betas=betas, eps=eps, weight_decay=weight_decay,
+            raise RuntimeError(
+                'FusedAdam does not support the AMSGrad variant.')
+        defaults = dict(lr=lr,
+                        bias_correction=bias_correction,
+                        betas=betas,
+                        eps=eps,
+                        weight_decay=weight_decay,
                         max_grad_norm=max_grad_norm)
         super(FusedAdam, self).__init__(params, defaults)
-        self.eps_mode = 0 if  eps_inside_sqrt else 1
+        self.eps_mode = 0 if eps_inside_sqrt else 1
 
     @property
     def supports_memory_efficient_fp16(self):
@@ -236,22 +266,23 @@ class FusedAdam(torch.optim.Optimizer):
             loss = closure()
 
         if grads is None:
-            grads_group = [None]*len(self.param_groups)
+            grads_group = [None] * len(self.param_groups)
         # backward compatibility
         # assuming a list/generator of parameter means single group
         elif isinstance(grads, types.GeneratorType):
             grads_group = [grads]
-        elif type(grads[0])!=list:
+        elif type(grads[0]) != list:
             grads_group = [grads]
         else:
             grads_group = grads
 
         if grad_norms is None:
-            grad_norms = [None]*len(self.param_groups)
+            grad_norms = [None] * len(self.param_groups)
 
-        for group, grads_this_group, grad_norm in zip(self.param_groups, grads_group, grad_norms):
+        for group, grads_this_group, grad_norm in zip(self.param_groups,
+                                                      grads_group, grad_norms):
             if grads_this_group is None:
-               grads_this_group = [None]*len(group['params'])
+                grads_this_group = [None] * len(group['params'])
 
             # compute combined scale factor for this group
             combined_scale = scale
@@ -270,7 +301,9 @@ class FusedAdam(torch.optim.Optimizer):
                 if grad is None:
                     grad = p.grad.data
                 if grad.is_sparse:
-                    raise RuntimeError('FusedAdam does not support sparse gradients, please consider SparseAdam instead')
+                    raise RuntimeError(
+                        'FusedAdam does not support sparse gradients, please consider SparseAdam instead'
+                    )
 
                 p_data_fp32 = p.data.float()
 
@@ -285,7 +318,8 @@ class FusedAdam(torch.optim.Optimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)
                 else:
                     state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
+                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(
+                        p_data_fp32)
 
                 exp_avg = state['exp_avg']
                 exp_avg_sq = state['exp_avg_sq']
@@ -294,19 +328,10 @@ class FusedAdam(torch.optim.Optimizer):
                 state['step'] += 1
 
                 out_p = p.data
-                fused_adam_cuda.adam(p_data_fp32,
-                                     out_p,
-                                     exp_avg,
-                                     exp_avg_sq,
-                                     grad,
-                                     group['lr'],
-                                     beta1,
-                                     beta2,
-                                     group['eps'],
-                                     combined_scale,
-                                     state['step'],
-                                     self.eps_mode,
-                                     bias_correction,
-                                     group['weight_decay'])
+                fused_adam_cuda.adam(p_data_fp32, out_p, exp_avg, exp_avg_sq,
+                                     grad, group['lr'], beta1, beta2,
+                                     group['eps'], combined_scale,
+                                     state['step'], self.eps_mode,
+                                     bias_correction, group['weight_decay'])
 
         return loss

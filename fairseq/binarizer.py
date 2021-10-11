@@ -11,6 +11,8 @@ import os
 from fairseq.tokenizer import tokenize_line
 from bert import BertTokenizer
 import torch
+
+
 def safe_readline(f):
     pos = f.tell()
     while True:
@@ -22,10 +24,15 @@ def safe_readline(f):
 
 
 class Binarizer:
-
     @staticmethod
-    def binarize(filename, dict, consumer, tokenize=tokenize_line, append_eos=True, reverse_order=False,
-                 offset=0, end=-1):
+    def binarize(filename,
+                 dict,
+                 consumer,
+                 tokenize=tokenize_line,
+                 append_eos=True,
+                 reverse_order=False,
+                 offset=0,
+                 end=-1):
         nseq, ntok = 0, 0
         replaced = Counter()
 
@@ -45,7 +52,7 @@ class Binarizer:
                     line = '{} {} {}'.format('[CLS]', line, '[SEP]')
                     tokenizedline = dict.tokenize(line)
                     if len(tokenizedline) > dict.max_len:
-                        tokenizedline = tokenizedline[:dict.max_len-1]
+                        tokenizedline = tokenizedline[:dict.max_len - 1]
                         tokenizedline.append('[SEP]')
                     words = dict.convert_tokens_to_ids(tokenizedline)
                     nwords = len(words)
@@ -55,18 +62,23 @@ class Binarizer:
                         replaced_consumer(tokenizedline[i], word)
                 else:
                     ids = dict.encode_line(
-                            line=line,
-                            line_tokenizer=tokenize,
-                            add_if_not_exist=False,
-                            consumer=replaced_consumer,
-                            append_eos=append_eos,
-                            reverse_order=reverse_order,
+                        line=line,
+                        line_tokenizer=tokenize,
+                        add_if_not_exist=False,
+                        consumer=replaced_consumer,
+                        append_eos=append_eos,
+                        reverse_order=reverse_order,
                     )
                 nseq += 1
                 ntok += len(ids)
                 consumer(ids)
                 line = f.readline()
-        return {'nseq': nseq, 'nunk': sum(replaced.values()), 'ntok': ntok, 'replaced': replaced}
+        return {
+            'nseq': nseq,
+            'nunk': sum(replaced.values()),
+            'ntok': ntok,
+            'replaced': replaced
+        }
 
     @staticmethod
     def find_offsets(filename, num_chunks):

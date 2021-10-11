@@ -23,7 +23,8 @@ Translation = namedtuple('Translation', 'src_str hypos pos_scores alignments')
 
 def buffered_read(input, buffer_size):
     buffer = []
-    with fileinput.input(files=[input], openhook=fileinput.hook_encoded("utf-8")) as h:
+    with fileinput.input(files=[input],
+                         openhook=fileinput.hook_encoded("utf-8")) as h:
         for src_str in h:
             buffer.append(src_str.strip())
             if len(buffer) >= buffer_size:
@@ -39,12 +40,12 @@ def make_batches(lines, args, task, max_positions, encode_fn):
     lines = oldlines[0::2]
     bertlines = oldlines[1::2]
     tokens = [
-        task.source_dictionary.encode_line(
-            encode_fn(src_str), add_if_not_exist=False
-        ).long()
+        task.source_dictionary.encode_line(encode_fn(src_str),
+                                           add_if_not_exist=False).long()
         for src_str in lines
     ]
     bertdict = BertTokenizer.from_pretrained(args.bert_model_name)
+
     def getbert(line):
         line = line.strip()
         line = '{} {} {}'.format('[CLS]', line, '[SEP]')
@@ -58,21 +59,22 @@ def make_batches(lines, args, task, max_positions, encode_fn):
         for i, word in enumerate(words):
             ids[i] = word
         return ids.long()
+
     berttokens = [getbert(x) for x in bertlines]
     lengths = torch.LongTensor([t.numel() for t in tokens])
     bertlengths = torch.LongTensor([t.numel() for t in berttokens])
     itr = task.get_batch_iterator(
-        dataset=task.build_dataset_for_inference(tokens, lengths, berttokens, bertlengths, bertdict),
+        dataset=task.build_dataset_for_inference(tokens, lengths, berttokens,
+                                                 bertlengths, bertdict),
         max_tokens=args.max_tokens,
         max_sentences=args.max_sentences,
         max_positions=max_positions,
     ).next_epoch_itr(shuffle=False)
     for batch in itr:
-        yield Batch(
-            ids=batch['id'],
-            src_tokens=batch['net_input']['src_tokens'], src_lengths=batch['net_input']['src_lengths'],
-            bert_input=batch['net_input']['bert_input']
-        )
+        yield Batch(ids=batch['id'],
+                    src_tokens=batch['net_input']['src_tokens'],
+                    src_lengths=batch['net_input']['src_lengths'],
+                    bert_input=batch['net_input']['bert_input'])
 
 
 def main(args):
@@ -138,9 +140,7 @@ def main(args):
     align_dict = utils.load_align_dict(args.replace_unk)
 
     max_positions = utils.resolve_max_positions(
-        task.max_positions(),
-        *[model.max_positions() for model in models]
-    )
+        task.max_positions(), *[model.max_positions() for model in models])
 
     if args.buffer_size > 1:
         print('| Sentence buffer size:', args.buffer_size)
@@ -164,7 +164,8 @@ def main(args):
                 },
             }
             translations = task.inference_step(generator, models, sample)
-            for i, (id, hypos) in enumerate(zip(batch.ids.tolist(), translations)):
+            for i, (id,
+                    hypos) in enumerate(zip(batch.ids.tolist(), translations)):
                 src_tokens_i = utils.strip_pad(src_tokens[i], tgt_dict.pad())
                 results.append((start_id + id, src_tokens_i, hypos))
 
@@ -179,26 +180,27 @@ def main(args):
                 hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
                     hypo_tokens=hypo['tokens'].int().cpu(),
                     src_str=src_str,
-                    alignment=hypo['alignment'].int().cpu() if hypo['alignment'] is not None else None,
+                    alignment=hypo['alignment'].int().cpu()
+                    if hypo['alignment'] is not None else None,
                     align_dict=align_dict,
                     tgt_dict=tgt_dict,
                     remove_bpe=args.remove_bpe,
                 )
                 if decoder is not None:
-                    hypo_str = decoder.decode(map(int, hypo_str.strip().split()))
+                    hypo_str = decoder.decode(map(int,
+                                                  hypo_str.strip().split()))
                 print('H-{}\t{}\t{}'.format(id, hypo['score'], hypo_str))
                 print('P-{}\t{}'.format(
-                    id,
-                    ' '.join(map(lambda x: '{:.4f}'.format(x), hypo['positional_scores'].tolist()))
-                ))
+                    id, ' '.join(
+                        map(lambda x: '{:.4f}'.format(x),
+                            hypo['positional_scores'].tolist()))))
                 if args.print_alignment:
                     print('A-{}\t{}'.format(
                         id,
-                        ' '.join(map(lambda x: str(utils.item(x)), alignment))
-                    ))
+                        ' '.join(map(lambda x: str(utils.item(x)), alignment))))
 
         # update running id counter
-        start_id += len(inputs)/2
+        start_id += len(inputs) / 2
 
 
 def cli_main():

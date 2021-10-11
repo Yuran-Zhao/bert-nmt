@@ -11,7 +11,6 @@ from . import FairseqLRScheduler, register_lr_scheduler
 @register_lr_scheduler('polynomial_decay')
 class PolynomialDecaySchedule(FairseqLRScheduler):
     """Decay the LR on a fixed schedule."""
-
     def __init__(self, args, optimizer):
         super().__init__(args, optimizer)
 
@@ -31,10 +30,17 @@ class PolynomialDecaySchedule(FairseqLRScheduler):
     @staticmethod
     def add_args(parser):
         """Add arguments to the parser for this LR scheduler."""
-        parser.add_argument('--force-anneal', '--fa', type=int, metavar='N',
+        parser.add_argument('--force-anneal',
+                            '--fa',
+                            type=int,
+                            metavar='N',
                             help='force annealing at specified epoch')
-        parser.add_argument('--warmup-updates', default=0, type=int, metavar='N',
-                            help='warmup the learning rate linearly for the first N updates')
+        parser.add_argument(
+            '--warmup-updates',
+            default=0,
+            type=int,
+            metavar='N',
+            help='warmup the learning rate linearly for the first N updates')
         parser.add_argument('--end-learning-rate', default=0.0, type=float)
         parser.add_argument('--power', default=1.0, type=float)
         parser.add_argument('--total-num-update', default=1000000, type=int)
@@ -64,7 +70,8 @@ class PolynomialDecaySchedule(FairseqLRScheduler):
         else:
             warmup = self.args.warmup_updates
             lr_range = self.lr - self.end_learning_rate
-            pct_remaining = 1 - (num_updates - warmup) / (self.total_num_update - warmup)
-            lr = lr_range * pct_remaining ** (self.power) + self.end_learning_rate
+            pct_remaining = 1 - (num_updates -
+                                 warmup) / (self.total_num_update - warmup)
+            lr = lr_range * pct_remaining**(self.power) + self.end_learning_rate
             self.optimizer.set_lr(lr)
         return self.optimizer.get_lr()

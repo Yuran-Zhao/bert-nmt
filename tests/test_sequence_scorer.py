@@ -16,7 +16,6 @@ import tests.utils as test_utils
 
 
 class TestSequenceScorer(unittest.TestCase):
-
     def test_sequence_scorer(self):
         # construct dummy dictionary
         d = test_utils.dummy_dictionary(vocab_size=2)

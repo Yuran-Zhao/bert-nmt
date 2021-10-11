@@ -16,7 +16,6 @@ class FairseqTask(object):
     Tasks store dictionaries and provide helpers for loading/iterating over
     Datasets, initializing the Model/Criterion and calculating the loss.
     """
-
     @staticmethod
     def add_args(parser):
         """Add task-specific arguments to the parser."""
@@ -36,7 +35,12 @@ class FairseqTask(object):
         return Dictionary.load(filename)
 
     @classmethod
-    def build_dictionary(cls, filenames, workers=1, threshold=-1, nwords=-1, padding_factor=8):
+    def build_dictionary(cls,
+                         filenames,
+                         workers=1,
+                         threshold=-1,
+                         nwords=-1,
+                         padding_factor=8):
         """Build the dictionary
 
         Args:
@@ -51,8 +55,11 @@ class FairseqTask(object):
         """
         d = Dictionary()
         for filename in filenames:
-            Dictionary.add_file_to_dictionary(filename, d, tokenizer.tokenize_line, workers)
-        d.finalize(threshold=threshold, nwords=nwords, padding_factor=padding_factor)
+            Dictionary.add_file_to_dictionary(filename, d,
+                                              tokenizer.tokenize_line, workers)
+        d.finalize(threshold=threshold,
+                   nwords=nwords,
+                   padding_factor=padding_factor)
         return d
 
     @classmethod
@@ -86,13 +93,23 @@ class FairseqTask(object):
         if split not in self.datasets:
             raise KeyError('Dataset not loaded: ' + split)
         if not isinstance(self.datasets[split], FairseqDataset):
-            raise TypeError('Datasets are expected to be of type FairseqDataset')
+            raise TypeError(
+                'Datasets are expected to be of type FairseqDataset')
         return self.datasets[split]
 
     def get_batch_iterator(
-        self, dataset, max_tokens=None, max_sentences=None, max_positions=None,
-        ignore_invalid_inputs=False, required_batch_size_multiple=1,
-        seed=1, num_shards=1, shard_id=0, num_workers=0, epoch=0,
+        self,
+        dataset,
+        max_tokens=None,
+        max_sentences=None,
+        max_positions=None,
+        ignore_invalid_inputs=False,
+        required_batch_size_multiple=1,
+        seed=1,
+        num_shards=1,
+        shard_id=0,
+        num_workers=0,
+        epoch=0,
     ):
         """
         Get an iterator that yields batches of data from the given dataset.
@@ -133,12 +150,18 @@ class FairseqTask(object):
 
         # filter examples that are too large
         indices = data_utils.filter_by_size(
-            indices, dataset.size, max_positions, raise_exception=(not ignore_invalid_inputs),
+            indices,
+            dataset.size,
+            max_positions,
+            raise_exception=(not ignore_invalid_inputs),
         )
 
         # create mini-batches with given size constraints
         batch_sampler = data_utils.batch_by_size(
-            indices, dataset.num_tokens, max_tokens=max_tokens, max_sentences=max_sentences,
+            indices,
+            dataset.num_tokens,
+            max_tokens=max_tokens,
+            max_sentences=max_sentences,
             required_batch_size_multiple=required_batch_size_multiple,
         )
 
@@ -208,7 +231,12 @@ class FairseqTask(object):
                 args=args,
             )
 
-    def train_step(self, sample, model, criterion, optimizer, ignore_grad=False):
+    def train_step(self,
+                   sample,
+                   model,
+                   criterion,
+                   optimizer,
+                   ignore_grad=False):
         """
         Do forward and backward, and return the loss as computed by *criterion*
         for the given *model* and *sample*.
@@ -243,7 +271,9 @@ class FairseqTask(object):
 
     def inference_step(self, generator, models, sample, prefix_tokens=None):
         with torch.no_grad():
-            return generator.generate(models, sample, prefix_tokens=prefix_tokens)
+            return generator.generate(models,
+                                      sample,
+                                      prefix_tokens=prefix_tokens)
 
     def update_step(self, num_updates):
         """Task level update when number of update increases. This is called after optimization step and

@@ -27,12 +27,14 @@ def main():
     with open(args.input, 'r', encoding='utf-8') as h:
         with contextlib.ExitStack() as stack:
             outputs = [
-                stack.enter_context(open(args.input + ".shard" + str(i), "w", encoding="utf-8"))
+                stack.enter_context(
+                    open(args.input + ".shard" + str(i), "w", encoding="utf-8"))
                 for i in range(args.num_shards)
             ]
 
             doc = []
-            first_doc = [True]*args.num_shards
+            first_doc = [True] * args.num_shards
+
             def output_doc(i):
                 if not first_doc[i]:
                     outputs[i].write("\n")

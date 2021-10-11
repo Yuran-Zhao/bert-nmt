@@ -56,7 +56,8 @@ def main(args, init_distributed=False):
                 param.requires_grad = False
     criterion = task.build_criterion(args)
     print(model)
-    print('| model {}, criterion {}'.format(args.arch, criterion.__class__.__name__))
+    print('| model {}, criterion {}'.format(args.arch,
+                                            criterion.__class__.__name__))
     print('| num. model params: {} (num. trained: {})'.format(
         sum(p.numel() for p in model.parameters()),
         sum(p.numel() for p in model.parameters() if p.requires_grad),
@@ -83,13 +84,19 @@ def main(args, init_distributed=False):
     valid_losses = [None]
     valid_subsets = args.valid_subset.split(',')
     if args.warmup_from_nmt:
-        checkpoint_utils.save_checkpoint(args, trainer, epoch_itr, valid_losses[0], warmup_from_nmt=True)
-    while lr > args.min_lr and epoch_itr.epoch < max_epoch and trainer.get_num_updates() < max_update:
+        checkpoint_utils.save_checkpoint(args,
+                                         trainer,
+                                         epoch_itr,
+                                         valid_losses[0],
+                                         warmup_from_nmt=True)
+    while lr > args.min_lr and epoch_itr.epoch < max_epoch and trainer.get_num_updates(
+    ) < max_update:
         # train for one epoch
         train(args, trainer, task, epoch_itr)
 
         if not args.disable_validation and epoch_itr.epoch % args.validate_interval == 0:
-            valid_losses = validate(args, trainer, task, epoch_itr, valid_subsets)
+            valid_losses = validate(args, trainer, task, epoch_itr,
+                                    valid_subsets)
         else:
             valid_losses = [None]
 
@@ -98,7 +105,8 @@ def main(args, init_distributed=False):
 
         # save checkpoint
         if epoch_itr.epoch % args.save_interval == 0:
-            checkpoint_utils.save_checkpoint(args, trainer, epoch_itr, valid_losses[0])
+            checkpoint_utils.save_checkpoint(args, trainer, epoch_itr,
+                                             valid_losses[0])
 
         if ':' in getattr(args, 'data', ''):
             # sharded data: get train iterator for next epoch
@@ -120,7 +128,10 @@ def train(args, trainer, task, epoch_itr):
     )
     itr = iterators.GroupedIterator(itr, update_freq)
     progress = progress_bar.build_progress_bar(
-        args, itr, epoch_itr.epoch, no_progress_bar='simple',
+        args,
+        itr,
+        epoch_itr.epoch,
+        no_progress_bar='simple',
     )
 
     extra_meters = collections.defaultdict(lambda: AverageMeter())
@@ -134,7 +145,9 @@ def train(args, trainer, task, epoch_itr):
         # log mid-epoch stats
         stats = get_training_stats(trainer)
         for k, v in log_output.items():
-            if k in ['loss', 'nll_loss', 'ntokens', 'nsentences', 'sample_size']:
+            if k in [
+                    'loss', 'nll_loss', 'ntokens', 'nsentences', 'sample_size'
+            ]:
                 continue  # these are already logged above
             if 'loss' in k:
                 extra_meters[k].update(v, log_output['sample_size'])
@@ -148,14 +161,13 @@ def train(args, trainer, task, epoch_itr):
             trainer.get_meter('wps').reset()
 
         num_updates = trainer.get_num_updates()
-        if (
-            not args.disable_validation
-            and args.save_interval_updates > 0
-            and num_updates % args.save_interval_updates == 0
-            and num_updates > 0
-        ):
-            valid_losses = validate(args, trainer, task, epoch_itr, valid_subsets)
-            checkpoint_utils.save_checkpoint(args, trainer, epoch_itr, valid_losses[0])
+        if (not args.disable_validation and args.save_interval_updates > 0
+                and num_updates % args.save_interval_updates == 0
+                and num_updates > 0):
+            valid_losses = validate(args, trainer, task, epoch_itr,
+                                    valid_subsets)
+            checkpoint_utils.save_checkpoint(args, trainer, epoch_itr,
+                                             valid_losses[0])
 
         if num_updates >= max_update:
             break
@@ -168,7 +180,14 @@ def train(args, trainer, task, epoch_itr):
 
     # reset training meters
     for k in [
-        'train_loss', 'train_nll_loss', 'wps', 'ups', 'wpb', 'bsz', 'gnorm', 'clip',
+            'train_loss',
+            'train_nll_loss',
+            'wps',
+            'ups',
+            'wpb',
+            'bsz',
+            'gnorm',
+            'clip',
     ]:
         meter = trainer.get_meter(k)
         if meter is not None:
@@ -221,10 +240,11 @@ def validate(args, trainer, task, epoch_itr, subsets):
             num_workers=args.num_workers,
         ).next_epoch_itr(shuffle=False)
         progress = progress_bar.build_progress_bar(
-            args, itr, epoch_itr.epoch,
+            args,
+            itr,
+            epoch_itr.epoch,
             prefix='valid on \'{}\' subset'.format(subset),
-            no_progress_bar='simple'
-        )
+            no_progress_bar='simple')
 
         # reset validation loss meters
         for k in ['valid_loss', 'valid_nll_loss']:
@@ -237,7 +257,10 @@ def validate(args, trainer, task, epoch_itr, subsets):
             log_output = trainer.valid_step(sample)
 
             for k, v in log_output.items():
-                if k in ['loss', 'nll_loss', 'ntokens', 'nsentences', 'sample_size']:
+                if k in [
+                        'loss', 'nll_loss', 'ntokens', 'nsentences',
+                        'sample_size'
+                ]:
                     continue
                 extra_meters[k].update(v)
 
@@ -262,8 +285,8 @@ def get_valid_stats(trainer):
     stats['ppl'] = utils.get_perplexity(nll_loss.avg)
     stats['num_updates'] = trainer.get_num_updates()
     if hasattr(checkpoint_utils.save_checkpoint, 'best'):
-        stats['best_loss'] = min(
-            checkpoint_utils.save_checkpoint.best, stats['loss'].avg)
+        stats['best_loss'] = min(checkpoint_utils.save_checkpoint.best,
+                                 stats['loss'].avg)
     return stats
 
 
@@ -297,10 +320,13 @@ def cli_main():
         # fallback for single node with multiple GPUs
         assert args.distributed_world_size <= torch.cuda.device_count()
         port = random.randint(10000, 20000)
-        args.distributed_init_method = 'tcp://localhost:{port}'.format(port=port)
+        args.distributed_init_method = 'tcp://localhost:{port}'.format(
+            port=port)
         args.distributed_rank = None  # set based on device id
         if max(args.update_freq) > 1 and args.ddp_backend != 'no_c10d':
-            print('| NOTE: you may get better performance with: --ddp-backend=no_c10d')
+            print(
+                '| NOTE: you may get better performance with: --ddp-backend=no_c10d'
+            )
         torch.multiprocessing.spawn(
             fn=distributed_main,
             args=(args, ),

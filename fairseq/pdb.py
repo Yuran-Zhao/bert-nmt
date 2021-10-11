@@ -10,9 +10,7 @@ import os
 import pdb
 import sys
 
-
 __all__ = ['set_trace']
-
 
 _stdin = [None]
 _stdin_lock = multiprocessing.Lock()
@@ -27,7 +25,6 @@ class MultiprocessingPdb(pdb.Pdb):
 
     Usage: `from fairseq import pdb; pdb.set_trace()`
     """
-
     def __init__(self):
         pdb.Pdb.__init__(self, nosigint=True)
 

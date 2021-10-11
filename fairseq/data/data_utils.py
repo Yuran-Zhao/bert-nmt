@@ -24,7 +24,13 @@ def infer_language_pair(path):
     return src, dst
 
 
-def collate_tokens(values, pad_idx, eos_idx=None, left_pad=False, move_eos_to_beginning=False,):
+def collate_tokens(
+    values,
+    pad_idx,
+    eos_idx=None,
+    left_pad=False,
+    move_eos_to_beginning=False,
+):
     """Convert a list of 1d tensors into a padded 2d tensor."""
     size = max(v.size(0) for v in values)
     res = values[0].new(len(values), size).fill_(pad_idx)
@@ -99,8 +105,7 @@ def filter_by_size(indices, size_fn, max_positions, raise_exception=False):
             return all(
                 all(a is None or b is None or a <= b
                     for a, b in zip(idx_size[key], max_positions[key]))
-                for key in intersect_keys
-            )
+                for key in intersect_keys)
         else:
             # For MultiCorpusSampledDataset, will generalize it later
             if not isinstance(size_fn(idx), Iterable):
@@ -113,21 +118,23 @@ def filter_by_size(indices, size_fn, max_positions, raise_exception=False):
 
     for idx in itr:
         if len(ignored) > 0 and raise_exception:
-            raise Exception((
-                'Size of sample #{} is invalid (={}) since max_positions={}, '
-                'skip this example with --skip-invalid-size-inputs-valid-test'
-            ).format(ignored[0], size_fn(ignored[0]), max_positions))
+            raise Exception(
+                ('Size of sample #{} is invalid (={}) since max_positions={}, '
+                 'skip this example with --skip-invalid-size-inputs-valid-test'
+                 ).format(ignored[0], size_fn(ignored[0]), max_positions))
         yield idx
 
     if len(ignored) > 0:
-        print((
-            '| WARNING: {} samples have invalid sizes and will be skipped, '
-            'max_positions={}, first few sample ids={}'
-        ).format(len(ignored), max_positions, ignored[:10]))
+        print(('| WARNING: {} samples have invalid sizes and will be skipped, '
+               'max_positions={}, first few sample ids={}').format(
+                   len(ignored), max_positions, ignored[:10]))
 
 
 def batch_by_size(
-    indices, num_tokens_fn, max_tokens=None, max_sentences=None,
+    indices,
+    num_tokens_fn,
+    max_tokens=None,
+    max_sentences=None,
     required_batch_size_multiple=1,
 ):
     """
@@ -167,8 +174,7 @@ def batch_by_size(
         sample_len = max(sample_len, sample_lens[-1])
         assert sample_len <= max_tokens, (
             "sentence at index {} of size {} exceeds max_tokens "
-            "limit of {}!".format(idx, sample_len, max_tokens)
-        )
+            "limit of {}!".format(idx, sample_len, max_tokens))
         num_tokens = (len(batch) + 1) * sample_len
         if is_batch_full(num_tokens):
             mod_len = max(

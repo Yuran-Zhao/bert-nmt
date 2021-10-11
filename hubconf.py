@@ -11,7 +11,6 @@ from fairseq.models.fconv_self_att import FConvModelSelfAtt
 from generator import Generator
 from fairseq import options
 
-
 dependencies = [
     'torch',
     'sacremoses',

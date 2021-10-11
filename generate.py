@@ -73,9 +73,7 @@ def main(args):
         max_tokens=args.max_tokens,
         max_sentences=args.max_sentences,
         max_positions=utils.resolve_max_positions(
-            task.max_positions(),
-            *[model.max_positions() for model in models]
-        ),
+            task.max_positions(), *[model.max_positions() for model in models]),
         ignore_invalid_inputs=args.skip_invalid_size_inputs_valid_test,
         required_batch_size_multiple=args.required_batch_size_multiple,
         num_shards=args.num_shards,
@@ -106,7 +104,8 @@ def main(args):
                 prefix_tokens = sample['target'][:, :args.prefix_size]
 
             gen_timer.start()
-            hypos = task.inference_step(generator, models, sample, prefix_tokens)
+            hypos = task.inference_step(generator, models, sample,
+                                        prefix_tokens)
             num_generated_tokens = sum(len(h[0]['tokens']) for h in hypos)
             gen_timer.stop(num_generated_tokens)
 
@@ -114,22 +113,28 @@ def main(args):
                 has_target = sample['target'] is not None
 
                 # Remove padding
-                src_tokens = utils.strip_pad(sample['net_input']['src_tokens'][i, :], tgt_dict.pad())
+                src_tokens = utils.strip_pad(
+                    sample['net_input']['src_tokens'][i, :], tgt_dict.pad())
                 target_tokens = None
                 if has_target:
-                    target_tokens = utils.strip_pad(sample['target'][i, :], tgt_dict.pad()).int().cpu()
+                    target_tokens = utils.strip_pad(sample['target'][i, :],
+                                                    tgt_dict.pad()).int().cpu()
 
                 # Either retrieve the original sentences or regenerate them from tokens.
                 if align_dict is not None:
-                    src_str = task.dataset(args.gen_subset).src.get_original_text(sample_id)
-                    target_str = task.dataset(args.gen_subset).tgt.get_original_text(sample_id)
+                    src_str = task.dataset(
+                        args.gen_subset).src.get_original_text(sample_id)
+                    target_str = task.dataset(
+                        args.gen_subset).tgt.get_original_text(sample_id)
                 else:
                     if src_dict is not None:
                         src_str = src_dict.string(src_tokens, args.remove_bpe)
                     else:
                         src_str = ""
                     if has_target:
-                        target_str = tgt_dict.string(target_tokens, args.remove_bpe, escape_unk=True)
+                        target_str = tgt_dict.string(target_tokens,
+                                                     args.remove_bpe,
+                                                     escape_unk=True)
 
                 if not args.quiet:
                     if src_dict is not None:
@@ -138,37 +143,40 @@ def main(args):
                         print('T-{}\t{}'.format(sample_id, target_str))
 
                 # Process top predictions
-                for i, hypo in enumerate(hypos[i][:min(len(hypos), args.nbest)]):
+                for i, hypo in enumerate(
+                        hypos[i][:min(len(hypos), args.nbest)]):
                     hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
                         hypo_tokens=hypo['tokens'].int().cpu(),
                         src_str=src_str,
-                        alignment=hypo['alignment'].int().cpu() if hypo['alignment'] is not None else None,
+                        alignment=hypo['alignment'].int().cpu()
+                        if hypo['alignment'] is not None else None,
                         align_dict=align_dict,
                         tgt_dict=tgt_dict,
                         remove_bpe=args.remove_bpe,
                     )
 
                     if not args.quiet:
-                        print('H-{}\t{}\t{}'.format(sample_id, hypo['score'], hypo_str))
+                        print('H-{}\t{}\t{}'.format(sample_id, hypo['score'],
+                                                    hypo_str))
                         print('P-{}\t{}'.format(
-                            sample_id,
-                            ' '.join(map(
-                                lambda x: '{:.4f}'.format(x),
-                                hypo['positional_scores'].tolist(),
-                            ))
-                        ))
+                            sample_id, ' '.join(
+                                map(
+                                    lambda x: '{:.4f}'.format(x),
+                                    hypo['positional_scores'].tolist(),
+                                ))))
 
                         if args.print_alignment:
                             print('A-{}\t{}'.format(
-                                sample_id,
-                                ' '.join(map(lambda x: str(utils.item(x)), alignment))
-                            ))
+                                sample_id, ' '.join(
+                                    map(lambda x: str(utils.item(x)),
+                                        alignment))))
 
                     # Score only the top hypothesis
                     if has_target and i == 0:
                         if align_dict is not None or args.remove_bpe is not None:
                             # Convert back to tokens for evaluation with unk replacement and/or without BPE
-                            target_tokens = tgt_dict.encode_line(target_str, add_if_not_exist=True)
+                            target_tokens = tgt_dict.encode_line(
+                                target_str, add_if_not_exist=True)
                         if hasattr(scorer, 'add_string'):
                             scorer.add_string(target_str, hypo_str)
                         else:
@@ -178,10 +186,14 @@ def main(args):
             t.log({'wps': round(wps_meter.avg)})
             num_sentences += sample['nsentences']
 
-    print('| Translated {} sentences ({} tokens) in {:.1f}s ({:.2f} sentences/s, {:.2f} tokens/s)'.format(
-        num_sentences, gen_timer.n, gen_timer.sum, num_sentences / gen_timer.sum, 1. / gen_timer.avg))
+    print(
+        '| Translated {} sentences ({} tokens) in {:.1f}s ({:.2f} sentences/s, {:.2f} tokens/s)'
+        .format(num_sentences, gen_timer.n, gen_timer.sum,
+                num_sentences / gen_timer.sum, 1. / gen_timer.avg))
     if has_target:
-        print('| Generate {} with beam={}: {}'.format(args.gen_subset, args.beam, scorer.result_string()))
+        print('| Generate {} with beam={}: {}'.format(args.gen_subset,
+                                                      args.beam,
+                                                      scorer.result_string()))
     return scorer
 
 

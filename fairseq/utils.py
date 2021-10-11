@@ -24,10 +24,11 @@ def load_ensemble_for_inference(filenames, task, model_arg_overrides=None):
     from fairseq import checkpoint_utils
     deprecation_warning(
         'utils.load_ensemble_for_inference is deprecated. '
-        'Please use checkpoint_utils.load_model_ensemble instead.'
-    )
+        'Please use checkpoint_utils.load_model_ensemble instead.')
     return checkpoint_utils.load_model_ensemble(
-        filenames, arg_overrides=model_arg_overrides, task=task,
+        filenames,
+        arg_overrides=model_arg_overrides,
+        task=task,
     )
 
 
@@ -61,9 +62,11 @@ def _get_full_incremental_state_key(module_instance, key):
     # not shared across module instances
     if not hasattr(module_instance, '_fairseq_instance_id'):
         INCREMENTAL_STATE_INSTANCE_ID[module_name] += 1
-        module_instance._fairseq_instance_id = INCREMENTAL_STATE_INSTANCE_ID[module_name]
+        module_instance._fairseq_instance_id = INCREMENTAL_STATE_INSTANCE_ID[
+            module_name]
 
-    return '{}.{}.{}'.format(module_name, module_instance._fairseq_instance_id, key)
+    return '{}.{}.{}'.format(module_name, module_instance._fairseq_instance_id,
+                             key)
 
 
 def get_incremental_state(module, incremental_state, key):
@@ -102,7 +105,8 @@ def print_embed_overlap(embed_dict, vocab_dict):
     embed_keys = set(embed_dict.keys())
     vocab_keys = set(vocab_dict.symbols)
     overlap = len(embed_keys & vocab_keys)
-    print("| Found {}/{} types in embedding file.".format(overlap, len(vocab_dict)))
+    print("| Found {}/{} types in embedding file.".format(
+        overlap, len(vocab_dict)))
 
 
 def parse_embedding(embed_path):
@@ -121,7 +125,8 @@ def parse_embedding(embed_path):
         next(f_embed)  # skip header
         for line in f_embed:
             pieces = line.rstrip().split(" ")
-            embed_dict[pieces[0]] = torch.Tensor([float(weight) for weight in pieces[1:]])
+            embed_dict[pieces[0]] = torch.Tensor(
+                [float(weight) for weight in pieces[1:]])
     return embed_dict
 
 
@@ -147,11 +152,17 @@ def replace_unk(hypo_str, src_str, alignment, align_dict, unk):
     return ' '.join(hypo_tokens)
 
 
-def post_process_prediction(hypo_tokens, src_str, alignment, align_dict, tgt_dict, remove_bpe=None):
+def post_process_prediction(hypo_tokens,
+                            src_str,
+                            alignment,
+                            align_dict,
+                            tgt_dict,
+                            remove_bpe=None):
     from fairseq import tokenizer
     hypo_str = tgt_dict.string(hypo_tokens, remove_bpe)
     if align_dict is not None:
-        hypo_str = replace_unk(hypo_str, src_str, alignment, align_dict, tgt_dict.unk_string())
+        hypo_str = replace_unk(hypo_str, src_str, alignment, align_dict,
+                               tgt_dict.unk_string())
     if align_dict is not None or remove_bpe is not None:
         # Convert back to tokens for evaluating with unk replacement or without BPE
         # Note that the dictionary can be modified inside the method.
@@ -180,7 +191,10 @@ def buffered_arange(max):
     return buffered_arange.buf[:max]
 
 
-def convert_padding_direction(src_tokens, padding_idx, right_to_left=False, left_to_right=False):
+def convert_padding_direction(src_tokens,
+                              padding_idx,
+                              right_to_left=False,
+                              left_to_right=False):
     assert right_to_left ^ left_to_right
     pad_mask = src_tokens.eq(padding_idx)
     if not pad_mask.any():
@@ -225,7 +239,6 @@ def fill_with_neg_inf(t):
 
 def resolve_max_positions(*args):
     """Resolve max position constraints from multiple sources."""
-
     def map_value_update(d1, d2):
         updated_value = copy.deepcopy(d1)
         for key in d2:
@@ -254,9 +267,8 @@ def resolve_max_positions(*args):
             elif isinstance(arg, dict):
                 max_positions = map_value_update(max_positions, arg)
             else:
-                max_positions = tuple(
-                    map(nullsafe_min, zip(max_positions, arg))
-                )
+                max_positions = tuple(map(nullsafe_min, zip(max_positions,
+                                                            arg)))
 
     return max_positions
 
@@ -306,14 +318,16 @@ def get_activation_fn(activation: str) -> Callable:
     elif activation == 'gelu':
         return gelu
     elif activation == 'gelu_fast':
-        deprecation_warning('--activation-fn=gelu_fast has been renamed to gelu_accurate')
+        deprecation_warning(
+            '--activation-fn=gelu_fast has been renamed to gelu_accurate')
         return gelu_accurate
     elif activation == 'gelu_accurate':
         return gelu_accurate
     elif activation == 'tanh':
         return torch.tanh
     else:
-        raise RuntimeError("--activation-fn {} not supported".format(activation))
+        raise RuntimeError(
+            "--activation-fn {} not supported".format(activation))
 
 
 def get_available_activation_fns() -> List:

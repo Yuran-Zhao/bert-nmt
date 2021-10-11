@@ -64,9 +64,10 @@ class ConcatDataset(FairseqDataset):
 
     @property
     def sizes(self):
-        return np.concatenate(
-            [np.tile(ds.sizes, sr) for ds, sr in zip(self.datasets, self.sample_ratios)]
-        )
+        return np.concatenate([
+            np.tile(ds.sizes, sr)
+            for ds, sr in zip(self.datasets, self.sample_ratios)
+        ])
 
     @property
     def supports_prefetch(self):
@@ -83,5 +84,6 @@ class ConcatDataset(FairseqDataset):
         for to, ds in zip(self.cumulative_sizes, self.datasets):
             real_size = len(ds)
             if getattr(ds, 'supports_prefetch', False):
-                ds.prefetch([(i - frm) % real_size for i in indices if frm <= i < to])
+                ds.prefetch([(i - frm) % real_size for i in indices
+                             if frm <= i < to])
             frm = to

@@ -22,12 +22,11 @@ class BeamableMM(nn.Module):
         self.beam_size = beam_size
 
     def forward(self, input1, input2):
-        if (
-            not self.training and           # test mode
-            self.beam_size is not None and  # beam size is set
-            input1.dim() == 3 and           # only support batched input
-            input1.size(1) == 1             # single time step update
-        ):
+        if (not self.training and  # test mode
+                self.beam_size is not None and  # beam size is set
+                input1.dim() == 3 and  # only support batched input
+                input1.size(1) == 1  # single time step update
+            ):
             bsz, beam = input1.size(0), self.beam_size
 
             # bsz x 1 x nhu --> bsz/beam x beam x nhu

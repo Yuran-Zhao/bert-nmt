@@ -28,9 +28,8 @@ def infer_init_method(args):
         return
 
     # support torch.distributed.launch
-    if all(key in os.environ for key in [
-        'MASTER_ADDR', 'MASTER_PORT', 'WORLD_SIZE', 'RANK'
-    ]):
+    if all(key in os.environ
+           for key in ['MASTER_ADDR', 'MASTER_PORT', 'WORLD_SIZE', 'RANK']):
         args.distributed_init_method = 'env://'
         args.distributed_world_size = int(os.environ['WORLD_SIZE'])
         args.distributed_rank = int(os.environ['RANK'])
@@ -40,7 +39,8 @@ def infer_init_method(args):
         node_list = os.environ.get('SLURM_JOB_NODELIST')
         if node_list is not None:
             try:
-                hostnames = subprocess.check_output(['scontrol', 'show', 'hostnames', node_list])
+                hostnames = subprocess.check_output(
+                    ['scontrol', 'show', 'hostnames', node_list])
                 args.distributed_init_method = 'tcp://{host}:{port}'.format(
                     host=hostnames.split()[0].decode('utf-8'),
                     port=args.distributed_port,
@@ -65,21 +65,25 @@ def infer_init_method(args):
 
 def distributed_init(args):
     if args.distributed_world_size == 1:
-        raise ValueError('Cannot initialize distributed with distributed_world_size=1')
+        raise ValueError(
+            'Cannot initialize distributed with distributed_world_size=1')
 
     if torch.distributed.is_initialized():
-        warnings.warn('Distributed is already initialized, cannot initialize twice!')
+        warnings.warn(
+            'Distributed is already initialized, cannot initialize twice!')
     else:
         print('| distributed init (rank {}): {}'.format(
-            args.distributed_rank, args.distributed_init_method), flush=True)
+            args.distributed_rank, args.distributed_init_method),
+              flush=True)
         dist.init_process_group(
             backend=args.distributed_backend,
             init_method=args.distributed_init_method,
             world_size=args.distributed_world_size,
             rank=args.distributed_rank,
         )
-        print('| initialized host {} as rank {}'.format(
-            socket.gethostname(), args.distributed_rank), flush=True)
+        print('| initialized host {} as rank {}'.format(socket.gethostname(),
+                                                        args.distributed_rank),
+              flush=True)
 
         # perform a dummy all-reduce to initialize the NCCL communicator
         dist.all_reduce(torch.rand(1).cuda())
@@ -148,25 +152,27 @@ def all_gather_list(data, group=None, max_size=16384):
     enc = pickle.dumps(data)
     enc_size = len(enc)
     if enc_size + 2 > max_size:
-        raise ValueError('encoded data exceeds max_size: {}'.format(enc_size + 2))
-    assert max_size < 255*256
+        raise ValueError('encoded data exceeds max_size: {}'.format(enc_size +
+                                                                    2))
+    assert max_size < 255 * 256
 
     cpu_buffer[0] = enc_size // 255  # this encoding works for max_size < 65k
     cpu_buffer[1] = enc_size % 255
-    cpu_buffer[2 : enc_size + 2] = torch.ByteTensor(list(enc))
+    cpu_buffer[2:enc_size + 2] = torch.ByteTensor(list(enc))
     start = rank * max_size
     size = enc_size + 2
-    buffer[start : start + size].copy_(cpu_buffer[:size])
+    buffer[start:start + size].copy_(cpu_buffer[:size])
 
     all_reduce(buffer, group=group)
 
     try:
         result = []
         for i in range(world_size):
-            out_buffer = buffer[i * max_size : (i + 1) * max_size]
+            out_buffer = buffer[i * max_size:(i + 1) * max_size]
             size = (255 * utils.item(out_buffer[0])) + utils.item(out_buffer[1])
             if size > 0:
-                result.append(pickle.loads(bytes(out_buffer[2 : size + 2].tolist())))
+                result.append(
+                    pickle.loads(bytes(out_buffer[2:size + 2].tolist())))
         return result
     except pickle.UnpicklingError:
         raise Exception(

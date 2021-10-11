@@ -19,13 +19,20 @@ def collate(samples, pad_idx, eos_idx):
         if is_list:
             res = []
             for i in range(len(samples[0][key])):
-                res.append(data_utils.collate_tokens(
-                    [s[key][i] for s in samples], pad_idx, eos_idx, left_pad=False,
-                ))
+                res.append(
+                    data_utils.collate_tokens(
+                        [s[key][i] for s in samples],
+                        pad_idx,
+                        eos_idx,
+                        left_pad=False,
+                    ))
             return res
         else:
             return data_utils.collate_tokens(
-                [s[key] for s in samples], pad_idx, eos_idx, left_pad=False,
+                [s[key] for s in samples],
+                pad_idx,
+                eos_idx,
+                left_pad=False,
             )
 
     src_tokens = merge('source')
@@ -41,9 +48,8 @@ def collate(samples, pad_idx, eos_idx):
         'ntokens': sum(len(s['source']) for s in samples),
         'net_input': {
             'src_tokens': src_tokens,
-            'src_lengths': torch.LongTensor([
-                s['source'].numel() for s in samples
-            ]),
+            'src_lengths':
+            torch.LongTensor([s['source'].numel() for s in samples]),
         },
         'target': target,
     }
@@ -60,9 +66,15 @@ class MonolingualDataset(FairseqDataset):
         shuffle (bool, optional): shuffle the elements before batching
             (default: True).
     """
-
-    def __init__(self, dataset, sizes, src_vocab, tgt_vocab, add_eos_for_other_targets, shuffle,
-                 targets=None, add_bos_token=False):
+    def __init__(self,
+                 dataset,
+                 sizes,
+                 src_vocab,
+                 tgt_vocab,
+                 add_eos_for_other_targets,
+                 shuffle,
+                 targets=None,
+                 add_bos_token=False):
         self.dataset = dataset
         self.sizes = np.array(sizes)
         self.vocab = src_vocab
@@ -88,7 +100,8 @@ class MonolingualDataset(FairseqDataset):
             # Right-to-left language models should condition on *source* and
             # predict *past_target*.
             source, future_target, past_target = self.dataset[index]
-            source, target = self._make_source_target(source, future_target, past_target)
+            source, target = self._make_source_target(source, future_target,
+                                                      past_target)
         else:
             source = self.dataset[index]
             target = None
@@ -108,11 +121,16 @@ class MonolingualDataset(FairseqDataset):
                 source = torch.cat([source, source.new([self.vocab.eos()])])
 
                 if 'future' in self.targets:
-                    future_target = torch.cat([future_target, future_target.new([self.vocab.pad()])])
+                    future_target = torch.cat(
+                        [future_target,
+                         future_target.new([self.vocab.pad()])])
                 if 'past' in self.targets:
                     # first token is before the start of sentence which is only used in "none" break mode when
                     # add_eos_for_other_targets is False
-                    past_target = torch.cat([past_target.new([self.vocab.pad()]), past_target[1:], source[-2, None]])
+                    past_target = torch.cat([
+                        past_target.new([self.vocab.pad()]), past_target[1:],
+                        source[-2, None]
+                    ])
 
             for t in self.targets:
                 if t == 'self':
@@ -140,6 +158,7 @@ class MonolingualDataset(FairseqDataset):
 
     def _filter_vocab(self, target):
         if len(self.tgt_vocab) != len(self.vocab):
+
             def _filter(target):
                 mask = target.ge(len(self.tgt_vocab))
                 if mask.any():

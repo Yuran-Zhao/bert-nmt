@@ -19,7 +19,6 @@ class SinusoidalPositionalEmbedding(nn.Module):
 
     Padding symbols are ignored.
     """
-
     def __init__(self, embedding_dim, padding_idx, init_size=1024):
         super().__init__()
         self.embedding_dim = embedding_dim
@@ -45,8 +44,10 @@ class SinusoidalPositionalEmbedding(nn.Module):
         half_dim = embedding_dim // 2
         emb = math.log(10000) / (half_dim - 1)
         emb = torch.exp(torch.arange(half_dim, dtype=torch.float) * -emb)
-        emb = torch.arange(num_embeddings, dtype=torch.float).unsqueeze(1) * emb.unsqueeze(0)
-        emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1).view(num_embeddings, -1)
+        emb = torch.arange(num_embeddings,
+                           dtype=torch.float).unsqueeze(1) * emb.unsqueeze(0)
+        emb = torch.cat([torch.sin(emb), torch.cos(emb)],
+                        dim=1).view(num_embeddings, -1)
         if embedding_dim % 2 == 1:
             # zero pad
             emb = torch.cat([emb, torch.zeros(num_embeddings, 1)], dim=1)
@@ -69,18 +70,26 @@ class SinusoidalPositionalEmbedding(nn.Module):
 
         if incremental_state is not None:
             # positions is the same for every token when decoding a single step
-            pos = (timestep.int() + 1).long() if timestep is not None else seq_len
+            pos = (timestep.int() +
+                   1).long() if timestep is not None else seq_len
             if self.onnx_trace:
-                return self.weights[self.padding_idx + pos, :].unsqueeze(1).repeat(bsz, 1, 1)
+                return self.weights[self.padding_idx +
+                                    pos, :].unsqueeze(1).repeat(bsz, 1, 1)
             return self.weights[self.padding_idx + pos, :].expand(bsz, 1, -1)
 
-        positions = utils.make_positions(input, self.padding_idx, onnx_trace=self.onnx_trace)
+        positions = utils.make_positions(input,
+                                         self.padding_idx,
+                                         onnx_trace=self.onnx_trace)
         if self.onnx_trace:
-            flat_embeddings = self.weights.detach().index_select(0, positions.view(-1))
-            embedding_shape = torch.cat((bsz.view(1), seq_len.view(1), torch.LongTensor([-1])))
-            embeddings = torch.onnx.operators.reshape_from_tensor_shape(flat_embeddings, embedding_shape)
+            flat_embeddings = self.weights.detach().index_select(
+                0, positions.view(-1))
+            embedding_shape = torch.cat(
+                (bsz.view(1), seq_len.view(1), torch.LongTensor([-1])))
+            embeddings = torch.onnx.operators.reshape_from_tensor_shape(
+                flat_embeddings, embedding_shape)
             return embeddings
-        return self.weights.index_select(0, positions.view(-1)).view(bsz, seq_len, -1).detach()
+        return self.weights.index_select(0, positions.view(-1)).view(
+            bsz, seq_len, -1).detach()
 
     def max_positions(self):
         """Maximum number of supported positions."""

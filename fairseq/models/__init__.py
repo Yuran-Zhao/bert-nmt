@@ -29,7 +29,6 @@ from .fairseq_model import (
 from .composite_encoder import CompositeEncoder
 from .distributed_fairseq_model import DistributedFairseqModel
 
-
 __all__ = [
     'BaseFairseqModel',
     'CompositeEncoder',
@@ -43,7 +42,6 @@ __all__ = [
     'FairseqModel',
     'FairseqMultiModel',
 ]
-
 
 
 def build_model(args, task):
@@ -69,12 +67,14 @@ def register_model(name):
     Args:
         name (str): the name of the model
     """
-
     def register_model_cls(cls):
         if name in MODEL_REGISTRY:
-            raise ValueError('Cannot register duplicate model ({})'.format(name))
+            raise ValueError(
+                'Cannot register duplicate model ({})'.format(name))
         if not issubclass(cls, BaseFairseqModel):
-            raise ValueError('Model ({}: {}) must extend BaseFairseqModel'.format(name, cls.__name__))
+            raise ValueError(
+                'Model ({}: {}) must extend BaseFairseqModel'.format(
+                    name, cls.__name__))
         MODEL_REGISTRY[name] = cls
         return cls
 
@@ -105,14 +105,18 @@ def register_model_architecture(model_name, arch_name):
             registered)
         arch_name (str): the name of the model architecture (``--arch``)
     """
-
     def register_model_arch_fn(fn):
         if model_name not in MODEL_REGISTRY:
-            raise ValueError('Cannot register model architecture for unknown model type ({})'.format(model_name))
+            raise ValueError(
+                'Cannot register model architecture for unknown model type ({})'
+                .format(model_name))
         if arch_name in ARCH_MODEL_REGISTRY:
-            raise ValueError('Cannot register duplicate model architecture ({})'.format(arch_name))
+            raise ValueError(
+                'Cannot register duplicate model architecture ({})'.format(
+                    arch_name))
         if not callable(fn):
-            raise ValueError('Model architecture must be callable ({})'.format(arch_name))
+            raise ValueError(
+                'Model architecture must be callable ({})'.format(arch_name))
         ARCH_MODEL_REGISTRY[arch_name] = MODEL_REGISTRY[model_name]
         ARCH_MODEL_INV_REGISTRY.setdefault(model_name, []).append(arch_name)
         ARCH_CONFIG_REGISTRY[arch_name] = fn
@@ -131,7 +135,9 @@ for file in os.listdir(os.path.dirname(__file__)):
         if model_name in MODEL_REGISTRY:
             parser = argparse.ArgumentParser(add_help=False)
             group_archs = parser.add_argument_group('Named architectures')
-            group_archs.add_argument('--arch', choices=ARCH_MODEL_INV_REGISTRY[model_name])
-            group_args = parser.add_argument_group('Additional command-line arguments')
+            group_archs.add_argument(
+                '--arch', choices=ARCH_MODEL_INV_REGISTRY[model_name])
+            group_args = parser.add_argument_group(
+                'Additional command-line arguments')
             MODEL_REGISTRY[model_name].add_args(group_args)
             globals()[model_name + '_parser'] = parser

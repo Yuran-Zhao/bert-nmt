@@ -14,7 +14,6 @@ from . import FairseqCriterion, register_criterion
 
 @register_criterion('label_smoothed_cross_entropy')
 class LabelSmoothedCrossEntropyCriterion(FairseqCriterion):
-
     def __init__(self, args, task):
         super().__init__(args, task)
         self.eps = args.label_smoothing
@@ -23,8 +22,12 @@ class LabelSmoothedCrossEntropyCriterion(FairseqCriterion):
     def add_args(parser):
         """Add criterion-specific arguments to the parser."""
         # fmt: off
-        parser.add_argument('--label-smoothing', default=0., type=float, metavar='D',
-                            help='epsilon for label smoothing, 0 means no label smoothing')
+        parser.add_argument(
+            '--label-smoothing',
+            default=0.,
+            type=float,
+            metavar='D',
+            help='epsilon for label smoothing, 0 means no label smoothing')
         # fmt: on
 
     def forward(self, model, sample, reduce=True):
@@ -36,8 +39,12 @@ class LabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         3) logging outputs to display while training
         """
         net_output = model(**sample['net_input'])
-        loss, nll_loss = self.compute_loss(model, net_output, sample, reduce=reduce)
-        sample_size = sample['target'].size(0) if self.args.sentence_avg else sample['ntokens']
+        loss, nll_loss = self.compute_loss(model,
+                                           net_output,
+                                           sample,
+                                           reduce=reduce)
+        sample_size = sample['target'].size(
+            0) if self.args.sentence_avg else sample['ntokens']
         logging_output = {
             'loss': utils.item(loss.data) if reduce else loss.data,
             'nll_loss': utils.item(nll_loss.data) if reduce else nll_loss.data,
@@ -68,9 +75,16 @@ class LabelSmoothedCrossEntropyCriterion(FairseqCriterion):
         nsentences = sum(log.get('nsentences', 0) for log in logging_outputs)
         sample_size = sum(log.get('sample_size', 0) for log in logging_outputs)
         return {
-            'loss': sum(log.get('loss', 0) for log in logging_outputs) / sample_size / math.log(2),
-            'nll_loss': sum(log.get('nll_loss', 0) for log in logging_outputs) / ntokens / math.log(2),
-            'ntokens': ntokens,
-            'nsentences': nsentences,
-            'sample_size': sample_size,
+            'loss':
+            sum(log.get('loss', 0)
+                for log in logging_outputs) / sample_size / math.log(2),
+            'nll_loss':
+            sum(log.get('nll_loss', 0)
+                for log in logging_outputs) / ntokens / math.log(2),
+            'ntokens':
+            ntokens,
+            'nsentences':
+            nsentences,
+            'sample_size':
+            sample_size,
         }

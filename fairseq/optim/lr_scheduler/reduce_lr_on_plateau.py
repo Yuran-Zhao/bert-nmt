@@ -13,25 +13,32 @@ from . import FairseqLRScheduler, register_lr_scheduler
 @register_lr_scheduler('reduce_lr_on_plateau')
 class ReduceLROnPlateau(FairseqLRScheduler):
     """Decay the LR by a factor every time the validation loss plateaus."""
-
     def __init__(self, args, optimizer):
         super().__init__(args, optimizer)
         if len(args.lr) > 1:
             raise ValueError(
                 'Cannot use a fixed learning rate schedule with reduce_lr_on_plateau.'
-                ' Consider --lr-scheduler=fixed instead.'
-            )
+                ' Consider --lr-scheduler=fixed instead.')
         self.lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            self.optimizer.optimizer, patience=0, factor=args.lr_shrink,
+            self.optimizer.optimizer,
+            patience=0,
+            factor=args.lr_shrink,
             threshold=args.lr_threshold)
 
     @staticmethod
     def add_args(parser):
         """Add arguments to the parser for this LR scheduler."""
         # fmt: off
-        parser.add_argument('--lr-shrink', default=0.1, type=float, metavar='LS',
-                            help='shrink factor for annealing, lr_new = (lr * lr_shrink)')
-        parser.add_argument('--lr-threshold', default=1e-4, type=float, metavar='LT',
+        parser.add_argument(
+            '--lr-shrink',
+            default=0.1,
+            type=float,
+            metavar='LS',
+            help='shrink factor for annealing, lr_new = (lr * lr_shrink)')
+        parser.add_argument('--lr-threshold',
+                            default=1e-4,
+                            type=float,
+                            metavar='LT',
                             help='Threshold for measuring the new optimum, \
                             to only focus on significant changes')
         # fmt: on

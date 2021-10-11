@@ -27,9 +27,10 @@ class TestMultiCorpusSampledDataset(unittest.TestCase):
             eos=1,
             include_targets=False,
         )
-        self.dataset_1 = LanguagePairDataset(
-            tokens_ds1, tokens_ds1.sizes, d, shuffle=False
-        )
+        self.dataset_1 = LanguagePairDataset(tokens_ds1,
+                                             tokens_ds1.sizes,
+                                             d,
+                                             shuffle=False)
         tokens_2 = torch.LongTensor([2]).view(1, -1)
         tokens_ds2 = TokenBlockDataset(
             tokens_2,
@@ -39,9 +40,10 @@ class TestMultiCorpusSampledDataset(unittest.TestCase):
             eos=1,
             include_targets=False,
         )
-        self.dataset_2 = LanguagePairDataset(
-            tokens_ds2, tokens_ds2.sizes, d, shuffle=False
-        )
+        self.dataset_2 = LanguagePairDataset(tokens_ds2,
+                                             tokens_ds2.sizes,
+                                             d,
+                                             shuffle=False)
 
     def _test_sample_helper(
         self,
@@ -53,11 +55,16 @@ class TestMultiCorpusSampledDataset(unittest.TestCase):
         np.random.seed(0)
         if sampling_func is None:
             m = MultiCorpusSampledDataset(
-                OrderedDict({0: self.dataset_1, 1: self.dataset_2}),
-            )
+                OrderedDict({
+                    0: self.dataset_1,
+                    1: self.dataset_2
+                }), )
         else:
             m = MultiCorpusSampledDataset(
-                OrderedDict({0: self.dataset_1, 1: self.dataset_2}),
+                OrderedDict({
+                    0: self.dataset_1,
+                    1: self.dataset_2
+                }),
                 sampling_func=sampling_func,
             )
         m.ordered_indices()
@@ -65,14 +72,12 @@ class TestMultiCorpusSampledDataset(unittest.TestCase):
         for _ in range(num_samples):
             if m.collater([m[0], m[1]])["net_input"]["src_tokens"][0] == 1:
                 count_sample_from_first_dataset += 1
-        sample_from_first_ds_percentage = (
-            1.0 * count_sample_from_first_dataset / num_samples
-        )
+        sample_from_first_ds_percentage = (1.0 *
+                                           count_sample_from_first_dataset /
+                                           num_samples)
         self.assertLess(
-            abs(
-                sample_from_first_ds_percentage
-                - expected_sample_from_first_ds_percentage
-            ),
+            abs(sample_from_first_ds_percentage -
+                expected_sample_from_first_ds_percentage),
             0.01,
         )
 

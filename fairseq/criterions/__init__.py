@@ -11,13 +11,11 @@ import os
 from fairseq import registry
 from fairseq.criterions.fairseq_criterion import FairseqCriterion
 
-
 build_criterion, register_criterion, CRITERION_REGISTRY = registry.setup_registry(
     '--criterion',
     base_class=FairseqCriterion,
     default='cross_entropy',
 )
-
 
 # automatically import any Python files in the criterions/ directory
 for file in os.listdir(os.path.dirname(__file__)):

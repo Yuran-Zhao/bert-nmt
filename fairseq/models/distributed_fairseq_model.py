@@ -55,7 +55,6 @@ def DistributedFairseqModel(args, model):
     class _DistributedFairseqModel(ddp_class):
         """Extend DistributedDataParallel to check for missing
         attributes in the wrapped module."""
-
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
 

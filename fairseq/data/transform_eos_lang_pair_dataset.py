@@ -5,7 +5,6 @@
 # the root directory of this source tree. An additional grant of patent rights
 # can be found in the PATENTS file in the same directory.
 
-
 from . import FairseqDataset
 from typing import Optional
 
@@ -25,7 +24,6 @@ class TransformEosLangPairDataset(FairseqDataset):
         new_tgt_bos (int, optional): new beginning-of-sentence symbol index to replace at the
             beginning of 'prev_output_tokens'
     """
-
     def __init__(
         self,
         dataset: FairseqDataset,
@@ -51,11 +49,13 @@ class TransformEosLangPairDataset(FairseqDataset):
 
         # TODO: support different padding direction
         if self.new_src_eos is not None:
-            assert(samples['net_input']['src_tokens'][:, -1] != self.src_eos).sum() == 0
+            assert (samples['net_input']['src_tokens'][:, -1] !=
+                    self.src_eos).sum() == 0
             samples['net_input']['src_tokens'][:, -1] = self.new_src_eos
 
         if self.new_tgt_bos is not None:
-            assert (samples['net_input']['prev_output_tokens'][:, 0] != self.tgt_bos).sum() == 0
+            assert (samples['net_input']['prev_output_tokens'][:, 0] !=
+                    self.tgt_bos).sum() == 0
             samples['net_input']['prev_output_tokens'][:, 0] = self.new_tgt_bos
 
         return samples

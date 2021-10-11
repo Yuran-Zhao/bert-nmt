@@ -23,7 +23,6 @@ class CountingIterator(object):
     Attributes:
         count (int): number of elements consumed from this iterator
     """
-
     def __init__(self, iterable, start=0):
         self.iterable = iterable
         self.count = start
@@ -79,10 +78,16 @@ class EpochBatchIterator(object):
         epoch (int, optional): the epoch to start the iterator from
             (default: 0).
     """
-
     def __init__(
-        self, dataset, collate_fn, batch_sampler, seed=1, num_shards=1, shard_id=0,
-        num_workers=0, epoch=0,
+        self,
+        dataset,
+        collate_fn,
+        batch_sampler,
+        seed=1,
+        num_shards=1,
+        shard_id=0,
+        num_workers=0,
+        epoch=0,
     ):
         assert isinstance(dataset, torch.utils.data.Dataset)
         self.dataset = dataset
@@ -117,7 +122,9 @@ class EpochBatchIterator(object):
         else:
             self.epoch += 1
             self._cur_epoch_itr = self._get_iterator_for_epoch(
-                self.epoch, shuffle, fix_batches_to_gpus=fix_batches_to_gpus,
+                self.epoch,
+                shuffle,
+                fix_batches_to_gpus=fix_batches_to_gpus,
             )
         return self._cur_epoch_itr
 
@@ -153,8 +160,11 @@ class EpochBatchIterator(object):
                 offset=itr_pos,
             )
 
-    def _get_iterator_for_epoch(self, epoch, shuffle, fix_batches_to_gpus=False, offset=0):
-
+    def _get_iterator_for_epoch(self,
+                                epoch,
+                                shuffle,
+                                fix_batches_to_gpus=False,
+                                offset=0):
         def shuffle_batches(batches, seed):
             # set seed based on the seed and epoch number so that we get
             # reproducible results when resuming from checkpoints
@@ -168,21 +178,27 @@ class EpochBatchIterator(object):
             if shuffle and not fix_batches_to_gpus:
                 batches = shuffle_batches(list(batches), self.seed + epoch)
 
-            batches = list(ShardedIterator(
-                batches, self.num_shards, self.shard_id, fill_value=[]
-            ))
+            batches = list(
+                ShardedIterator(batches,
+                                self.num_shards,
+                                self.shard_id,
+                                fill_value=[]))
             self.dataset.prefetch([i for s in batches for i in s])
 
             if shuffle and fix_batches_to_gpus:
-                batches = shuffle_batches(batches, self.seed + epoch + self.shard_id)
+                batches = shuffle_batches(batches,
+                                          self.seed + epoch + self.shard_id)
         else:
             if shuffle:
-                batches = shuffle_batches(list(self.frozen_batches), self.seed + epoch)
+                batches = shuffle_batches(list(self.frozen_batches),
+                                          self.seed + epoch)
             else:
                 batches = self.frozen_batches
-            batches = list(ShardedIterator(
-                batches, self.num_shards, self.shard_id, fill_value=[]
-            ))
+            batches = list(
+                ShardedIterator(batches,
+                                self.num_shards,
+                                self.shard_id,
+                                fill_value=[]))
 
         if offset > 0 and offset >= len(batches):
             return None
@@ -205,10 +221,10 @@ class GroupedIterator(object):
         iterable (iterable): iterable to wrap
         chunk_size (int): size of each chunk
     """
-
     def __init__(self, iterable, chunk_size):
         self._len = int(math.ceil(len(iterable) / float(chunk_size)))
-        self.offset = int(math.ceil(getattr(iterable, 'count', 0) / float(chunk_size)))
+        self.offset = int(
+            math.ceil(getattr(iterable, 'count', 0) / float(chunk_size)))
         self.itr = iterable
         self.chunk_size = chunk_size
 
@@ -239,7 +255,6 @@ class ShardedIterator(object):
         fill_value (Any, optional): padding value when the iterable doesn't
             evenly divide *num_shards* (default: None).
     """
-
     def __init__(self, iterable, num_shards, shard_id, fill_value=None):
         if shard_id < 0 or shard_id >= num_shards:
             raise ValueError('shard_id must be between 0 and num_shards')

@@ -13,9 +13,9 @@ try:
     from fairseq import libbleu
 except ImportError as e:
     import sys
-    sys.stderr.write('ERROR: missing libbleu.so. run `pip install --editable .`\n')
+    sys.stderr.write(
+        'ERROR: missing libbleu.so. run `pip install --editable .`\n')
     raise e
-
 
 C = ctypes.cdll.LoadLibrary(libbleu.__file__)
 
@@ -76,11 +76,11 @@ class Scorer(object):
 
     def add(self, ref, pred):
         if not isinstance(ref, torch.IntTensor):
-            raise TypeError('ref must be a torch.IntTensor (got {})'
-                            .format(type(ref)))
+            raise TypeError('ref must be a torch.IntTensor (got {})'.format(
+                type(ref)))
         if not isinstance(pred, torch.IntTensor):
-            raise TypeError('pred must be a torch.IntTensor(got {})'
-                            .format(type(pred)))
+            raise TypeError('pred must be a torch.IntTensor(got {})'.format(
+                type(pred)))
 
         # don't match unknown words
         rref = ref.clone()
@@ -90,18 +90,16 @@ class Scorer(object):
         rref = rref.contiguous().view(-1)
         pred = pred.contiguous().view(-1)
 
-        C.bleu_add(
-            ctypes.byref(self.stat),
-            ctypes.c_size_t(rref.size(0)),
-            ctypes.c_void_p(rref.data_ptr()),
-            ctypes.c_size_t(pred.size(0)),
-            ctypes.c_void_p(pred.data_ptr()),
-            ctypes.c_int(self.pad),
-            ctypes.c_int(self.eos))
+        C.bleu_add(ctypes.byref(self.stat), ctypes.c_size_t(rref.size(0)),
+                   ctypes.c_void_p(rref.data_ptr()),
+                   ctypes.c_size_t(pred.size(0)),
+                   ctypes.c_void_p(pred.data_ptr()), ctypes.c_int(self.pad),
+                   ctypes.c_int(self.eos))
 
     def score(self, order=4):
-        psum = sum(math.log(p) if p > 0 else float('-Inf')
-                   for p in self.precision()[:order])
+        psum = sum(
+            math.log(p) if p > 0 else float('-Inf')
+            for p in self.precision()[:order])
         return self.brevity() * math.exp(psum / order) * 100
 
     def precision(self):
@@ -127,5 +125,5 @@ class Scorer(object):
         fmt += ' (BP={:.3f}, ratio={:.3f}, syslen={}, reflen={})'
         bleup = [p * 100 for p in self.precision()[:order]]
         return fmt.format(order, self.score(order=order), *bleup,
-                          self.brevity(), self.stat.predlen/self.stat.reflen,
+                          self.brevity(), self.stat.predlen / self.stat.reflen,
                           self.stat.predlen, self.stat.reflen)

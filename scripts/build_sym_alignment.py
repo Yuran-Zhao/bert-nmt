@@ -40,24 +40,25 @@ def main():
                         default='grow-diag-final-and')
     parser.add_argument('--source_file',
                         help='path to a file with sentences '
-                             'in the source language')
+                        'in the source language')
     parser.add_argument('--target_file',
                         help='path to a file with sentences '
-                             'in the target language')
-    parser.add_argument('--output_dir',
-                        help='output directory')
+                        'in the target language')
+    parser.add_argument('--output_dir', help='output directory')
     # fmt: on
     args = parser.parse_args()
 
     fast_align_bin = os.path.join(args.fast_align_dir, 'fast_align')
     symal_bin = os.path.join(args.mosesdecoder_dir, 'bin', 'symal')
-    sym_fast_align_bin = os.path.join(
-        args.mosesdecoder_dir, 'scripts', 'ems',
-        'support', 'symmetrize-fast-align.perl')
+    sym_fast_align_bin = os.path.join(args.mosesdecoder_dir, 'scripts', 'ems',
+                                      'support', 'symmetrize-fast-align.perl')
 
     # create joined file
     joined_file = os.path.join(args.output_dir, 'text.joined')
-    with open(args.source_file, 'r', encoding='utf-8') as src, open(args.target_file, 'r', encoding='utf-8') as tgt:
+    with open(args.source_file, 'r',
+              encoding='utf-8') as src, open(args.target_file,
+                                             'r',
+                                             encoding='utf-8') as tgt:
         with open(joined_file, 'w', encoding='utf-8') as joined:
             for s, t in zip_longest(src, tgt):
                 print('{} ||| {}'.format(s.strip(), t.strip()), file=joined)
@@ -67,17 +68,13 @@ def main():
     # run forward alignment
     fwd_align_file = os.path.join(args.output_dir, 'align.forward')
     fwd_fast_align_cmd = '{FASTALIGN} -i {JOINED} -d -o -v > {FWD}'.format(
-        FASTALIGN=fast_align_bin,
-        JOINED=joined_file,
-        FWD=fwd_align_file)
+        FASTALIGN=fast_align_bin, JOINED=joined_file, FWD=fwd_align_file)
     assert os.system(fwd_fast_align_cmd) == 0
 
     # run backward alignment
     bwd_align_file = os.path.join(args.output_dir, 'align.backward')
     bwd_fast_align_cmd = '{FASTALIGN} -i {JOINED} -d -o -v -r > {BWD}'.format(
-        FASTALIGN=fast_align_bin,
-        JOINED=joined_file,
-        BWD=bwd_align_file)
+        FASTALIGN=fast_align_bin, JOINED=joined_file, BWD=bwd_align_file)
     assert os.system(bwd_fast_align_cmd) == 0
 
     # run symmetrization
@@ -90,8 +87,7 @@ def main():
         TGT=args.target_file,
         OUT=sym_out_file,
         HEURISTIC=args.sym_heuristic,
-        SYMAL=symal_bin
-    )
+        SYMAL=symal_bin)
     assert os.system(sym_cmd) == 0
 
 

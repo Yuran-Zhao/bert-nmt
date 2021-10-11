@@ -18,7 +18,6 @@ from . import FairseqOptimizer, register_optimizer
 
 @register_optimizer('lamb')
 class FairseqLamb(FairseqOptimizer):
-
     def __init__(self, args, params):
         super().__init__(args, params)
         self._optimizer = Lamb(params, **self.optimizer_config)
@@ -27,11 +26,20 @@ class FairseqLamb(FairseqOptimizer):
     def add_args(parser):
         """Add optimizer-specific arguments to the parser."""
         # fmt: off
-        parser.add_argument('--lamb-betas', default='(0.9, 0.999)', metavar='B',
+        parser.add_argument('--lamb-betas',
+                            default='(0.9, 0.999)',
+                            metavar='B',
                             help='betas for LAMB optimizer')
-        parser.add_argument('--lamb-eps', type=float, default=1e-8, metavar='D',
+        parser.add_argument('--lamb-eps',
+                            type=float,
+                            default=1e-8,
+                            metavar='D',
                             help='epsilon for LAMB optimizer')
-        parser.add_argument('--weight-decay', '--wd', default=0.0, type=float, metavar='WD',
+        parser.add_argument('--weight-decay',
+                            '--wd',
+                            default=0.0,
+                            type=float,
+                            metavar='WD',
                             help='weight decay')
         # fmt: on
 
@@ -68,19 +76,24 @@ class Lamb(torch.optim.Optimizer):
     .. _Reducing BERT Pre-Training Time from 3 Days to 76 Minutes:
         https://arxiv.org/abs/1904.00962
     """
-
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
-                 weight_decay=0, adam=False):
+    def __init__(self,
+                 params,
+                 lr=1e-3,
+                 betas=(0.9, 0.999),
+                 eps=1e-8,
+                 weight_decay=0,
+                 adam=False):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
             raise ValueError("Invalid epsilon value: {}".format(eps))
         if not 0.0 <= betas[0] < 1.0:
-            raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
+            raise ValueError("Invalid beta parameter at index 0: {}".format(
+                betas[0]))
         if not 0.0 <= betas[1] < 1.0:
-            raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
-        defaults = dict(lr=lr, betas=betas, eps=eps,
-                        weight_decay=weight_decay)
+            raise ValueError("Invalid beta parameter at index 1: {}".format(
+                betas[1]))
+        defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
         self.adam = adam
         super(Lamb, self).__init__(params, defaults)
 
@@ -100,7 +113,9 @@ class Lamb(torch.optim.Optimizer):
                     continue
                 grad = p.grad.data
                 if grad.is_sparse:
-                    raise RuntimeError('Lamb does not support sparse gradients, consider SparseAdam instad.')
+                    raise RuntimeError(
+                        'Lamb does not support sparse gradients, consider SparseAdam instad.'
+                    )
 
                 state = self.state[p]
 
@@ -125,16 +140,17 @@ class Lamb(torch.optim.Optimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
                 denom = exp_avg_sq.sqrt().add_(group['eps'])
 
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
+                bias_correction1 = 1 - beta1**state['step']
+                bias_correction2 = 1 - beta2**state['step']
                 # Apply bias to lr to avoid broadcast.
-                step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
+                step_size = group['lr'] * math.sqrt(
+                    bias_correction2) / bias_correction1
 
                 adam_step = exp_avg / denom
                 # L2 norm uses sum, but here since we're dividing, use mean to avoid overflow.
                 r1 = p.data.pow(2).mean().sqrt()
                 r2 = adam_step.pow(2).mean().sqrt()
-                r = 1 if r1 == 0 or r2 == 0 else  min(r1/r2, 10)
+                r = 1 if r1 == 0 or r2 == 0 else min(r1 / r2, 10)
                 state['r1'] = r1
                 state['r2'] = r2
                 state['r'] = r

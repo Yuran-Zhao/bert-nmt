@@ -21,7 +21,6 @@ from fairseq.models.transformer import (
 
 @register_model("transformer_from_pretrained_xlm")
 class TransformerFromPretrainedXLMModel(TransformerModel):
-
     @staticmethod
     def add_args(parser):
         """Add model-specific arguments to the parser."""
@@ -30,34 +29,35 @@ class TransformerFromPretrainedXLMModel(TransformerModel):
             "--pretrained-xlm-checkpoint",
             type=str,
             metavar="STR",
-            help="XLM model to use for initializing transformer encoder and/or decoder",
+            help=
+            "XLM model to use for initializing transformer encoder and/or decoder",
         )
         parser.add_argument(
             "--init-encoder-only",
             action="store_true",
-            help="if set, don't load the XLM weights and embeddings into decoder",
+            help=
+            "if set, don't load the XLM weights and embeddings into decoder",
         )
         parser.add_argument(
             "--init-decoder-only",
             action="store_true",
-            help="if set, don't load the XLM weights and embeddings into encoder",
+            help=
+            "if set, don't load the XLM weights and embeddings into encoder",
         )
 
     @classmethod
     def build_model(self, args, task, cls_dictionary=MaskedLMDictionary):
         assert hasattr(args, "pretrained_xlm_checkpoint"), (
             "You must specify a path for --pretrained-xlm-checkpoint to use "
-            "--arch transformer_from_pretrained_xlm"
-        )
-        assert isinstance(task.source_dictionary, cls_dictionary) and isinstance(
-            task.target_dictionary, cls_dictionary
-        ), (
+            "--arch transformer_from_pretrained_xlm")
+        assert isinstance(
+            task.source_dictionary, cls_dictionary
+        ) and isinstance(task.target_dictionary, cls_dictionary), (
             "You should use a MaskedLMDictionary when using --arch "
             "transformer_from_pretrained_xlm because the pretrained XLM model "
             "was trained using data binarized with MaskedLMDictionary. "
             "For translation, you may want to use --task "
-            "translation_from_pretrained_xlm"
-        )
+            "translation_from_pretrained_xlm")
         assert not (
             getattr(args, "init_encoder_only", False)
             and getattr(args, "init_decoder_only", False)
@@ -74,8 +74,8 @@ class TransformerFromPretrainedXLMModel(TransformerModel):
 
 
 def upgrade_state_dict_with_xlm_weights(
-    state_dict: Dict[str, Any], pretrained_xlm_checkpoint: str
-) -> Dict[str, Any]:
+        state_dict: Dict[str, Any],
+        pretrained_xlm_checkpoint: str) -> Dict[str, Any]:
     """
     Load XLM weights into a Transformer encoder or decoder model.
 
@@ -90,7 +90,8 @@ def upgrade_state_dict_with_xlm_weights(
             decoder and the pretrained_xlm_checkpoint
     """
     if not os.path.exists(pretrained_xlm_checkpoint):
-        raise IOError("Model file not found: {}".format(pretrained_xlm_checkpoint))
+        raise IOError(
+            "Model file not found: {}".format(pretrained_xlm_checkpoint))
 
     state = checkpoint_utils.load_checkpoint_to_cpu(pretrained_xlm_checkpoint)
     xlm_state_dict = state["model"]
@@ -103,17 +104,15 @@ def upgrade_state_dict_with_xlm_weights(
                     "{} Transformer encoder / decoder "
                     "state_dict does not contain {}. Cannot "
                     "load {} from pretrained XLM checkpoint "
-                    "{} into Transformer.".format(
-                        str(state_dict.keys()),
-                        subkey, key, pretrained_xlm_checkpoint)
-                    )
+                    "{} into Transformer.".format(str(state_dict.keys()),
+                                                  subkey, key,
+                                                  pretrained_xlm_checkpoint))
 
                 state_dict[subkey] = xlm_state_dict[key]
     return state_dict
 
 
 class TransformerEncoderFromPretrainedXLM(TransformerEncoder):
-
     def __init__(self, args, dictionary, embed_tokens):
         super().__init__(args, dictionary, embed_tokens)
         if getattr(args, 'init_decoder_only', False):
@@ -122,8 +121,7 @@ class TransformerEncoderFromPretrainedXLM(TransformerEncoder):
 
         assert hasattr(args, "pretrained_xlm_checkpoint"), (
             "--pretrained-xlm-checkpoint must be specified to load Transformer "
-            "encoder from pretrained XLM"
-        )
+            "encoder from pretrained XLM")
         xlm_loaded_state_dict = upgrade_state_dict_with_xlm_weights(
             state_dict=self.state_dict(),
             pretrained_xlm_checkpoint=args.pretrained_xlm_checkpoint,
@@ -132,7 +130,6 @@ class TransformerEncoderFromPretrainedXLM(TransformerEncoder):
 
 
 class TransformerDecoderFromPretrainedXLM(TransformerDecoder):
-
     def __init__(self, args, dictionary, embed_tokens, no_encoder_attn=False):
         super().__init__(args, dictionary, embed_tokens, no_encoder_attn)
         if getattr(args, 'init_encoder_only', False):
@@ -140,8 +137,7 @@ class TransformerDecoderFromPretrainedXLM(TransformerDecoder):
             return
         assert hasattr(args, "pretrained_xlm_checkpoint"), (
             "--pretrained-xlm-checkpoint must be specified to load Transformer "
-            "decoder from pretrained XLM"
-        )
+            "decoder from pretrained XLM")
 
         xlm_loaded_state_dict = upgrade_state_dict_with_xlm_weights(
             state_dict=self.state_dict(),
@@ -150,8 +146,7 @@ class TransformerDecoderFromPretrainedXLM(TransformerDecoder):
         self.load_state_dict(xlm_loaded_state_dict, strict=True)
 
 
-@register_model_architecture(
-    "transformer_from_pretrained_xlm", "transformer_from_pretrained_xlm"
-)
+@register_model_architecture("transformer_from_pretrained_xlm",
+                             "transformer_from_pretrained_xlm")
 def base_architecture(args):
     transformer_base_architecture(args)

@@ -11,7 +11,6 @@ import torch
 
 
 class Search(object):
-
     def __init__(self, tgt_dict):
         self.pad = tgt_dict.pad()
         self.unk = tgt_dict.unk()
@@ -54,7 +53,6 @@ class Search(object):
 
 
 class BeamSearch(Search):
-
     def __init__(self, tgt_dict):
         super().__init__(tgt_dict)
 
@@ -86,7 +84,6 @@ class BeamSearch(Search):
 
 
 class LengthConstrainedBeamSearch(Search):
-
     def __init__(self, tgt_dict, min_len_a, min_len_b, max_len_a, max_len_b):
         super().__init__(tgt_dict)
         self.min_len_a = min_len_a
@@ -113,7 +110,6 @@ class DiverseBeamSearch(Search):
     We only implement the Hamming Diversity penalty here, which performed best
     in the original paper.
     """
-
     def __init__(self, tgt_dict, num_groups, diversity_strength):
         super().__init__(tgt_dict)
         self.num_groups = num_groups
@@ -141,11 +137,13 @@ class DiverseBeamSearch(Search):
 
             # apply diversity penalty
             if g > 0:
-                lprobs_g = torch.add(lprobs_g, self.diversity_strength, self.diversity_buf.unsqueeze(1))
+                lprobs_g = torch.add(lprobs_g, self.diversity_strength,
+                                     self.diversity_buf.unsqueeze(1))
             else:
                 lprobs_g = lprobs_g.contiguous()
 
-            scores_buf, indices_buf, beams_buf = self.beam.step(step, lprobs_g, scores_g)
+            scores_buf, indices_buf, beams_buf = self.beam.step(
+                step, lprobs_g, scores_g)
             beams_buf.mul_(self.num_groups).add_(g)
 
             scores_G.append(scores_buf.clone())
@@ -154,20 +152,19 @@ class DiverseBeamSearch(Search):
 
             # update diversity penalty
             self.diversity_buf.scatter_add_(
-                1,
-                indices_buf,
-                self.diversity_buf.new_ones(indices_buf.size())
-            )
+                1, indices_buf, self.diversity_buf.new_ones(indices_buf.size()))
 
         # interleave results from different groups
-        self.scores_buf = torch.stack(scores_G, dim=2, out=self.scores_buf).view(bsz, -1)
-        self.indices_buf = torch.stack(indices_G, dim=2, out=self.indices_buf).view(bsz, -1)
-        self.beams_buf = torch.stack(beams_G, dim=2, out=self.beams_buf).view(bsz, -1)
+        self.scores_buf = torch.stack(scores_G, dim=2,
+                                      out=self.scores_buf).view(bsz, -1)
+        self.indices_buf = torch.stack(indices_G, dim=2,
+                                       out=self.indices_buf).view(bsz, -1)
+        self.beams_buf = torch.stack(beams_G, dim=2,
+                                     out=self.beams_buf).view(bsz, -1)
         return self.scores_buf, self.indices_buf, self.beams_buf
 
 
 class Sampling(Search):
-
     def __init__(self, tgt_dict, sampling_topk=-1):
         super().__init__(tgt_dict)
         self.sampling_topk = sampling_topk
@@ -233,14 +230,14 @@ class Sampling(Search):
         if step == 0:
             self.beams_buf = self.indices_buf.new_zeros(bsz, beam_size)
         else:
-            self.beams_buf = torch.arange(0, beam_size, out=self.beams_buf).repeat(bsz, 1)
+            self.beams_buf = torch.arange(0, beam_size,
+                                          out=self.beams_buf).repeat(bsz, 1)
             # make scores cumulative
             self.scores_buf.add_(
                 torch.gather(
                     scores[:, :, step - 1],
                     dim=1,
                     index=self.beams_buf,
-                )
-            )
+                ))
 
         return self.scores_buf, self.indices_buf, self.beams_buf

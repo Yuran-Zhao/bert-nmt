@@ -22,7 +22,6 @@ class TranslationFromPretrainedXLMTask(TranslationTask):
     training NMT with the pretrained XLM checkpoint, and subsequent evaluation
     of that trained model.
     """
-
     @classmethod
     def load_dictionary(cls, filename):
         """Load the masked LM dictionary from the filename

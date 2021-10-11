@@ -12,15 +12,9 @@ import numpy as np
 import torch
 
 from fairseq import utils
-from fairseq.data import (
-    ConcatDataset,
-    Dictionary,
-    MonolingualDataset,
-    TokenBlockDataset,
-    TransformEosDataset,
-    TruncatedDictionary,
-    indexed_dataset
-)
+from fairseq.data import (ConcatDataset, Dictionary, MonolingualDataset,
+                          TokenBlockDataset, TransformEosDataset,
+                          TruncatedDictionary, indexed_dataset)
 from fairseq.tasks import FairseqTask, register_task
 
 
@@ -53,35 +47,49 @@ class LanguageModelingTask(FairseqTask):
         :ref: fairseq.tasks.language_modeling_parser
         :prog:
     """
-
     @staticmethod
     def add_args(parser):
         """Add task-specific arguments to the parser."""
         # fmt: off
         parser.add_argument('data', help='path to data directory')
-        parser.add_argument('--sample-break-mode',
-                            choices=['none', 'complete', 'eos'],
-                            help='If omitted or "none", fills each sample with tokens-per-sample '
-                                 'tokens. If set to "complete", splits samples only at the end '
-                                 'of sentence, but may include multiple sentences per sample. '
-                                 'If set to "eos", includes only one sentence per sample.')
-        parser.add_argument('--tokens-per-sample', default=1024, type=int,
-                            help='max number of tokens per sample for LM dataset')
-        parser.add_argument('--lazy-load', action='store_true',
+        parser.add_argument(
+            '--sample-break-mode',
+            choices=['none', 'complete', 'eos'],
+            help='If omitted or "none", fills each sample with tokens-per-sample '
+            'tokens. If set to "complete", splits samples only at the end '
+            'of sentence, but may include multiple sentences per sample. '
+            'If set to "eos", includes only one sentence per sample.')
+        parser.add_argument(
+            '--tokens-per-sample',
+            default=1024,
+            type=int,
+            help='max number of tokens per sample for LM dataset')
+        parser.add_argument('--lazy-load',
+                            action='store_true',
                             help='load the dataset lazily')
-        parser.add_argument('--raw-text', default=False, action='store_true',
+        parser.add_argument('--raw-text',
+                            default=False,
+                            action='store_true',
                             help='load raw text dataset')
-        parser.add_argument('--output-dictionary-size', default=-1, type=int,
+        parser.add_argument('--output-dictionary-size',
+                            default=-1,
+                            type=int,
                             help='limit the size of output dictionary')
-        parser.add_argument('--self-target', action='store_true',
+        parser.add_argument('--self-target',
+                            action='store_true',
                             help='include self target')
-        parser.add_argument('--future-target', action='store_true',
+        parser.add_argument('--future-target',
+                            action='store_true',
                             help='include future target')
-        parser.add_argument('--past-target', action='store_true',
+        parser.add_argument('--past-target',
+                            action='store_true',
                             help='include past target')
-        parser.add_argument('--add-bos-token', action='store_true',
+        parser.add_argument('--add-bos-token',
+                            action='store_true',
                             help='prepend beginning of sentence token (<s>)')
-        parser.add_argument('--max-target-positions', type=int, metavar='N',
+        parser.add_argument('--max-target-positions',
+                            type=int,
+                            metavar='N',
                             help='max number of tokens in the target sequence')
         # fmt: on
 
@@ -102,10 +110,12 @@ class LanguageModelingTask(FairseqTask):
             args (argparse.Namespace): parsed command-line arguments
         """
         if getattr(args, 'raw_text', False):
-            utils.deprecation_warning('--raw-text is deprecated, please use --dataset-impl=raw')
+            utils.deprecation_warning(
+                '--raw-text is deprecated, please use --dataset-impl=raw')
             args.dataset_impl = 'raw'
         elif getattr(args, 'lazy_load', False):
-            utils.deprecation_warning('--lazy-load is deprecated, please use --dataset-impl=lazy')
+            utils.deprecation_warning(
+                '--lazy-load is deprecated, please use --dataset-impl=lazy')
             args.dataset_impl = 'lazy'
 
         dictionary = None
@@ -117,7 +127,8 @@ class LanguageModelingTask(FairseqTask):
             print('| dictionary: {} types'.format(len(dictionary)))
             output_dictionary = dictionary
             if args.output_dictionary_size >= 0:
-                output_dictionary = TruncatedDictionary(dictionary, args.output_dictionary_size)
+                output_dictionary = TruncatedDictionary(
+                    dictionary, args.output_dictionary_size)
 
         # upgrade old checkpoints
         if hasattr(args, 'exclude_self_target'):
@@ -141,7 +152,8 @@ class LanguageModelingTask(FairseqTask):
 
         for target in self.targets:
             if target not in model.supported_targets:
-                raise ValueError('Unsupported language modeling target: {}'.format(target))
+                raise ValueError(
+                    'Unsupported language modeling target: {}'.format(target))
 
         return model
 
@@ -161,24 +173,31 @@ class LanguageModelingTask(FairseqTask):
         for k in itertools.count():
             split_k = split + (str(k) if k > 0 else '')
             path = os.path.join(data_path, split_k)
-            ds = indexed_dataset.make_dataset(path, impl=self.args.dataset_impl,
-                                              fix_lua_indexing=True, dictionary=self.dictionary)
+            ds = indexed_dataset.make_dataset(path,
+                                              impl=self.args.dataset_impl,
+                                              fix_lua_indexing=True,
+                                              dictionary=self.dictionary)
 
             if ds is None:
                 if k > 0:
                     break
                 else:
-                    raise FileNotFoundError('Dataset not found: {} ({})'.format(split, data_path))
+                    raise FileNotFoundError('Dataset not found: {} ({})'.format(
+                        split, data_path))
 
             loaded_datasets.append(
                 TokenBlockDataset(
-                    ds, ds.sizes, self.args.tokens_per_sample,
-                    pad=self.dictionary.pad(), eos=self.dictionary.eos(),
-                    break_mode=self.args.sample_break_mode, include_targets=True,
-                )
-            )
+                    ds,
+                    ds.sizes,
+                    self.args.tokens_per_sample,
+                    pad=self.dictionary.pad(),
+                    eos=self.dictionary.eos(),
+                    break_mode=self.args.sample_break_mode,
+                    include_targets=True,
+                ))
 
-            print('| {} {} {} examples'.format(data_path, split_k, len(loaded_datasets[-1])))
+            print('| {} {} {} examples'.format(data_path, split_k,
+                                               len(loaded_datasets[-1])))
 
             if not combine:
                 break
@@ -193,9 +212,14 @@ class LanguageModelingTask(FairseqTask):
         add_eos_for_other_targets = self.args.sample_break_mode is not None and self.args.sample_break_mode != 'none'
 
         self.datasets[split] = MonolingualDataset(
-            dataset, sizes, self.dictionary, self.output_dictionary,
-            add_eos_for_other_targets=add_eos_for_other_targets, shuffle=True,
-            targets=self.targets, add_bos_token=self.args.add_bos_token,
+            dataset,
+            sizes,
+            self.dictionary,
+            self.output_dictionary,
+            add_eos_for_other_targets=add_eos_for_other_targets,
+            shuffle=True,
+            targets=self.targets,
+            add_bos_token=self.args.add_bos_token,
         )
 
     def build_dataset_for_inference(self, src_tokens, src_lengths):
@@ -225,10 +249,13 @@ class LanguageModelingTask(FairseqTask):
 
     def inference_step(self, generator, models, sample, prefix_tokens=None):
         with torch.no_grad():
-            if prefix_tokens is None and sample['net_input']['src_tokens'].nelement():
+            if prefix_tokens is None and sample['net_input'][
+                    'src_tokens'].nelement():
                 # note: EOS has already been removed in build_dataset_for_inference
                 prefix_tokens = sample['net_input']['src_tokens']
-            return generator.generate(models, sample, prefix_tokens=prefix_tokens)
+            return generator.generate(models,
+                                      sample,
+                                      prefix_tokens=prefix_tokens)
 
     @property
     def source_dictionary(self):

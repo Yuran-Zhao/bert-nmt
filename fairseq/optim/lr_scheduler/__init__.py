@@ -11,7 +11,6 @@ import os
 from fairseq import registry
 from fairseq.optim.lr_scheduler.fairseq_lr_scheduler import FairseqLRScheduler
 
-
 build_lr_scheduler, register_lr_scheduler, LR_SCHEDULER_REGISTRY = registry.setup_registry(
     '--lr-scheduler',
     base_class=FairseqLRScheduler,

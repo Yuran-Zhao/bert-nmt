@@ -16,14 +16,13 @@ import tests.utils as test_utils
 
 
 class TestSequenceGenerator(unittest.TestCase):
-
     def setUp(self):
         self.tgt_dict, self.w1, self.w2, src_tokens, src_lengths, self.model = (
-            test_utils.sequence_generator_setup()
-        )
+            test_utils.sequence_generator_setup())
         self.sample = {
             'net_input': {
-                'src_tokens': src_tokens, 'src_lengths': src_lengths,
+                'src_tokens': src_tokens,
+                'src_lengths': src_lengths,
             },
         }
 
@@ -47,7 +46,9 @@ class TestSequenceGenerator(unittest.TestCase):
     def test_without_normalization(self):
         # Sentence 1: unchanged from the normalized case
         # Sentence 2: beams swap order
-        generator = SequenceGenerator(self.tgt_dict, beam_size=2, normalize_scores=False)
+        generator = SequenceGenerator(self.tgt_dict,
+                                      beam_size=2,
+                                      normalize_scores=False)
         hypos = generator.generate([self.model], self.sample)
         eos, w1, w2 = self.tgt_dict.eos(), self.w1, self.w2
         # sentence 1, beam 1
@@ -55,17 +56,21 @@ class TestSequenceGenerator(unittest.TestCase):
         self.assertHypoScore(hypos[0][0], [0.9, 1.0], normalized=False)
         # sentence 1, beam 2
         self.assertHypoTokens(hypos[0][1], [w2, w1, w2, eos])
-        self.assertHypoScore(hypos[0][1], [0.1, 0.9, 0.9, 1.0], normalized=False)
+        self.assertHypoScore(hypos[0][1], [0.1, 0.9, 0.9, 1.0],
+                             normalized=False)
         # sentence 2, beam 1
         self.assertHypoTokens(hypos[1][0], [w1, w2, eos])
         self.assertHypoScore(hypos[1][0], [0.7, 0.4, 0.6], normalized=False)
         # sentence 2, beam 2
         self.assertHypoTokens(hypos[1][1], [w1, w2, w1, eos])
-        self.assertHypoScore(hypos[1][1], [0.7, 0.4, 0.4, 1.0], normalized=False)
+        self.assertHypoScore(hypos[1][1], [0.7, 0.4, 0.4, 1.0],
+                             normalized=False)
 
     def test_with_lenpen_favoring_short_hypos(self):
         lenpen = 0.6
-        generator = SequenceGenerator(self.tgt_dict, beam_size=2, len_penalty=lenpen)
+        generator = SequenceGenerator(self.tgt_dict,
+                                      beam_size=2,
+                                      len_penalty=lenpen)
         hypos = generator.generate([self.model], self.sample)
         eos, w1, w2 = self.tgt_dict.eos(), self.w1, self.w2
         # sentence 1, beam 1
@@ -83,7 +88,9 @@ class TestSequenceGenerator(unittest.TestCase):
 
     def test_with_lenpen_favoring_long_hypos(self):
         lenpen = 5.0
-        generator = SequenceGenerator(self.tgt_dict, beam_size=2, len_penalty=lenpen)
+        generator = SequenceGenerator(self.tgt_dict,
+                                      beam_size=2,
+                                      len_penalty=lenpen)
         hypos = generator.generate([self.model], self.sample)
         eos, w1, w2 = self.tgt_dict.eos(), self.w1, self.w2
         # sentence 1, beam 1
@@ -117,7 +124,9 @@ class TestSequenceGenerator(unittest.TestCase):
         self.assertHypoScore(hypos[1][1], [0.3, 0.9, 0.01])
 
     def test_no_stop_early(self):
-        generator = SequenceGenerator(self.tgt_dict, stop_early=False, beam_size=2)
+        generator = SequenceGenerator(self.tgt_dict,
+                                      stop_early=False,
+                                      beam_size=2)
         hypos = generator.generate([self.model], self.sample)
         eos, w1, w2 = self.tgt_dict.eos(), self.w1, self.w2
         # sentence 1, beam 1
@@ -155,7 +164,6 @@ class TestSequenceGenerator(unittest.TestCase):
 
 
 class TestDiverseBeamSearch(unittest.TestCase):
-
     def setUp(self):
         # construct dummy dictionary
         d = test_utils.dummy_dictionary(vocab_size=2)
@@ -214,9 +222,17 @@ class TestDiverseBeamSearch(unittest.TestCase):
 
     def test_diverse_beam_search(self):
         generator = SequenceGenerator(
-            self.tgt_dict, beam_size=2, diverse_beam_groups=2, diverse_beam_strength=0.,
+            self.tgt_dict,
+            beam_size=2,
+            diverse_beam_groups=2,
+            diverse_beam_strength=0.,
         )
-        sample = {'net_input': {'src_tokens': self.src_tokens, 'src_lengths': self.src_lengths}}
+        sample = {
+            'net_input': {
+                'src_tokens': self.src_tokens,
+                'src_lengths': self.src_lengths
+            }
+        }
         hypos = generator.generate([self.model], sample)
         eos, w1, w2 = self.eos, self.w1, self.w2
         # sentence 1, beam 1

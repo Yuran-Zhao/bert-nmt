@@ -4,7 +4,6 @@
 # This source code is licensed under the license found in the LICENSE file in
 # the root directory of this source tree. An additional grant of patent rights
 # can be found in the PATENTS file in the same directory.
-
 """
 Train a network across multiple GPUs.
 """
@@ -31,8 +30,13 @@ class Trainer(object):
     :class:`~torch.nn.parallel.DistributedDataParallel` to handle
     communication of the gradients across workers.
     """
-
-    def __init__(self, args, task, model, criterion, dummy_batch=None, oom_batch=None):
+    def __init__(self,
+                 args,
+                 task,
+                 model,
+                 criterion,
+                 dummy_batch=None,
+                 oom_batch=None):
         self.args = args
         self.task = task
 
@@ -64,24 +68,26 @@ class Trainer(object):
         self.meters['train_nll_loss'] = AverageMeter()
         self.meters['valid_loss'] = AverageMeter()
         self.meters['valid_nll_loss'] = AverageMeter()
-        self.meters['wps'] = TimeMeter()       # words per second
-        self.meters['ups'] = TimeMeter()       # updates per second
-        self.meters['wpb'] = AverageMeter()    # words per batch
-        self.meters['bsz'] = AverageMeter()    # sentences per batch
+        self.meters['wps'] = TimeMeter()  # words per second
+        self.meters['ups'] = TimeMeter()  # updates per second
+        self.meters['wpb'] = AverageMeter()  # words per batch
+        self.meters['bsz'] = AverageMeter()  # sentences per batch
         self.meters['gnorm'] = AverageMeter()  # gradient norm
-        self.meters['clip'] = AverageMeter()   # % of updates clipped
-        self.meters['oom'] = AverageMeter()    # out of memory
+        self.meters['clip'] = AverageMeter()  # % of updates clipped
+        self.meters['oom'] = AverageMeter()  # out of memory
         if args.fp16:
             self.meters['loss_scale'] = AverageMeter()  # dynamic loss scale
-        self.meters['wall'] = TimeMeter()      # wall time in seconds
-        self.meters['train_wall'] = StopwatchMeter()  # train wall time in seconds
+        self.meters['wall'] = TimeMeter()  # wall time in seconds
+        self.meters['train_wall'] = StopwatchMeter(
+        )  # train wall time in seconds
 
     @property
     def model(self):
         if self._wrapped_model is None:
             if self.args.distributed_world_size > 1:
                 self._wrapped_model = models.DistributedFairseqModel(
-                    self.args, self._model,
+                    self.args,
+                    self._model,
                 )
             else:
                 self._wrapped_model = self._model
@@ -100,23 +106,30 @@ class Trainer(object):
         return self._lr_scheduler
 
     def _build_optimizer(self):
-        params = list(filter(lambda p: p.requires_grad, self.model.parameters()))
+        params = list(filter(lambda p: p.requires_grad,
+                             self.model.parameters()))
         if self.args.fp16:
             if self.cuda and torch.cuda.get_device_capability(0)[0] < 7:
-                print('| WARNING: your device does NOT support faster training with --fp16, '
-                      'please switch to FP32 which is likely to be faster')
+                print(
+                    '| WARNING: your device does NOT support faster training with --fp16, '
+                    'please switch to FP32 which is likely to be faster')
             if self.args.memory_efficient_fp16:
-                self._optimizer = optim.MemoryEfficientFP16Optimizer.build_optimizer(self.args, params)
+                self._optimizer = optim.MemoryEfficientFP16Optimizer.build_optimizer(
+                    self.args, params)
             else:
-                self._optimizer = optim.FP16Optimizer.build_optimizer(self.args, params)
+                self._optimizer = optim.FP16Optimizer.build_optimizer(
+                    self.args, params)
         else:
             if self.cuda and torch.cuda.get_device_capability(0)[0] >= 7:
-                print('| NOTICE: your device may support faster training with --fp16')
+                print(
+                    '| NOTICE: your device may support faster training with --fp16'
+                )
             self._optimizer = optim.build_optimizer(self.args, params)
 
         # We should initialize the learning rate scheduler immediately after
         # building the optimizer, so that the initial learning rate is set.
-        self._lr_scheduler = lr_scheduler.build_lr_scheduler(self.args, self.optimizer)
+        self._lr_scheduler = lr_scheduler.build_lr_scheduler(
+            self.args, self.optimizer)
         self._lr_scheduler.step_update(0)
 
     def save_checkpoint(self, filename, extra_state):
@@ -124,9 +137,15 @@ class Trainer(object):
         if distributed_utils.is_master(self.args):  # only save one checkpoint
             extra_state['train_meters'] = self.meters
             checkpoint_utils.save_state(
-                filename, self.args, self.get_model().state_dict(), self.criterion,
-                self.optimizer, self.lr_scheduler, self.get_num_updates(),
-                self._optim_history, extra_state,
+                filename,
+                self.args,
+                self.get_model().state_dict(),
+                self.criterion,
+                self.optimizer,
+                self.lr_scheduler,
+                self.get_num_updates(),
+                self._optim_history,
+                extra_state,
             )
 
     def load_checkpoint(
@@ -147,12 +166,11 @@ class Trainer(object):
             # load model parameters
             try:
                 # loaded_results = self.get_model().load_state_dict(state['model'], strict=False if warmup_from_nmt else True)
-                self.get_model().load_state_dict(state['model'], strict=False if warmup_from_nmt else True)
+                self.get_model().load_state_dict(
+                    state['model'], strict=False if warmup_from_nmt else True)
             except Exception:
-                raise Exception(
-                    'Cannot load model parameters from checkpoint, '
-                    'please ensure that the architectures match.'
-                )
+                raise Exception('Cannot load model parameters from checkpoint, '
+                                'please ensure that the architectures match.')
 
             # if warmup_from_nmt:
             #     assert len(loaded_results.unexpected_keys) == 0
@@ -174,9 +192,11 @@ class Trainer(object):
                 'Optimizer does not match; please reset the optimizer (--reset-optimizer).'
 
             if not reset_lr_scheduler:
-                self.lr_scheduler.load_state_dict(last_optim['lr_scheduler_state'])
+                self.lr_scheduler.load_state_dict(
+                    last_optim['lr_scheduler_state'])
             if not warmup_from_nmt:
-                self.optimizer.load_state_dict(last_optim_state, optimizer_overrides)
+                self.optimizer.load_state_dict(last_optim_state,
+                                               optimizer_overrides)
 
             self.set_num_updates(last_optim['num_updates'])
             if reset_lr_scheduler and warmup_from_nmt:
@@ -205,7 +225,9 @@ class Trainer(object):
     def get_train_iterator(self, epoch, combine=True):
         """Return an EpochBatchIterator over the training set for a given epoch."""
         print('| loading train data for epoch {}'.format(epoch))
-        self.task.load_dataset(self.args.train_subset, epoch=epoch, combine=combine)
+        self.task.load_dataset(self.args.train_subset,
+                               epoch=epoch,
+                               combine=combine)
         return self.task.get_batch_iterator(
             dataset=self.task.dataset(self.args.train_subset),
             max_tokens=self.args.max_tokens,
@@ -263,19 +285,15 @@ class Trainer(object):
                 # forward and backward
                 loss, sample_size, logging_output = self.task.train_step(
                     sample, self.model, self.criterion, self.optimizer,
-                    ignore_grad
-                )
+                    ignore_grad)
 
                 if not ignore_grad:
                     logging_outputs.append(logging_output)
                     sample_sizes.append(sample_size)
             except RuntimeError as e:
                 if 'out of memory' in str(e):
-                    msg = (
-                        '| WARNING: ran out of memory with exception: '
-                        + '{};'.format(e)
-                        + '\n Skipping batch'
-                    )
+                    msg = ('| WARNING: ran out of memory with exception: ' +
+                           '{};'.format(e) + '\n Skipping batch')
                     # TODO: print should really go to logger, this print goes
                     # to stdout, which is buffered, which in many case is not
                     # printed out if another exception happens
@@ -303,10 +321,9 @@ class Trainer(object):
             logging_outputs = list(chain.from_iterable(logging_outputs))
             sample_sizes = list(chain.from_iterable(sample_sizes))
             ooms = sum(ooms)
-            assert (
-                all(norm == prev_norms[0] for norm in prev_norms)
-                or all(math.isnan(norm) or math.isinf(norm) for norm in prev_norms)
-            ), 'Fatal error: gradients are inconsistent between workers'
+            assert (all(norm == prev_norms[0] for norm in prev_norms) or all(
+                math.isnan(norm) or math.isinf(norm) for norm in prev_norms)
+                    ), 'Fatal error: gradients are inconsistent between workers'
 
         self.meters['oom'].update(ooms, len(samples))
         if ooms == self.args.distributed_world_size * len(samples):
@@ -316,19 +333,19 @@ class Trainer(object):
 
         # aggregate logging outputs and sample sizes
         logging_output = self.task.aggregate_logging_outputs(
-            logging_outputs, self.criterion
-        )
+            logging_outputs, self.criterion)
         sample_size = self.task.grad_denom(sample_sizes, self.criterion)
 
         if not all(k in logging_output for k in ['ntokens', 'nsentences']):
-            raise Exception((
-                'Please update the {}.aggregate_logging_outputs() method to '
-                'return ntokens and nsentences'
-            ).format(self.task.__class__.__name__))
+            raise Exception(
+                ('Please update the {}.aggregate_logging_outputs() method to '
+                 'return ntokens and nsentences').format(
+                     self.task.__class__.__name__))
 
         try:
             # normalize grads by sample size
-            self.optimizer.multiply_grads(self.args.distributed_world_size / float(sample_size))
+            self.optimizer.multiply_grads(self.args.distributed_world_size /
+                                          float(sample_size))
 
             # clip grads
             grad_norm = self.optimizer.clip_grad_norm(self.args.clip_norm)
@@ -349,16 +366,17 @@ class Trainer(object):
             self.meters['wpb'].update(ntokens)
             self.meters['bsz'].update(nsentences)
             self.meters['gnorm'].update(grad_norm)
-            self.meters['clip'].update(
-                1. if grad_norm > self.args.clip_norm and self.args.clip_norm > 0 else 0.
-            )
-            self.meters['train_loss'].update(logging_output.get('loss', 0), sample_size)
+            self.meters['clip'].update(1. if grad_norm > self.args.clip_norm
+                                       and self.args.clip_norm > 0 else 0.)
+            self.meters['train_loss'].update(logging_output.get('loss', 0),
+                                             sample_size)
             if 'train_acc' in self.meters:
-                self.meters['train_acc'].update(
-                    logging_output.get('acc', 0), sample_size)
+                self.meters['train_acc'].update(logging_output.get('acc', 0),
+                                                sample_size)
 
             if 'nll_loss' in logging_output:
-                self.meters['train_nll_loss'].update(logging_output.get('nll_loss', 0), ntokens)
+                self.meters['train_nll_loss'].update(
+                    logging_output.get('nll_loss', 0), ntokens)
         except OverflowError as e:
             print('| WARNING: overflow detected, ' + str(e))
             self.zero_grad()
@@ -387,8 +405,7 @@ class Trainer(object):
 
             try:
                 _loss, sample_size, logging_output = self.task.valid_step(
-                    sample, self.model, self.criterion
-                )
+                    sample, self.model, self.criterion)
             except RuntimeError as e:
                 if 'out of memory' in str(e) and not raise_oom:
                     print('| WARNING: ran out of memory, retrying batch')
@@ -406,9 +423,9 @@ class Trainer(object):
 
         # gather logging outputs from all replicas
         if self.args.distributed_world_size > 1:
-            logging_output, sample_size = zip(*distributed_utils.all_gather_list(
-                [logging_output, sample_size],
-            ))
+            logging_output, sample_size = zip(
+                *distributed_utils.all_gather_list(
+                    [logging_output, sample_size], ))
             logging_output = list(logging_output)
             sample_size = list(sample_size)
         else:
@@ -417,21 +434,20 @@ class Trainer(object):
 
         # aggregate logging outputs and sample sizes
         logging_output = self.task.aggregate_logging_outputs(
-            logging_output, self.criterion
-        )
-        sample_size = self.task.grad_denom(
-            sample_size, self.criterion
-        )
+            logging_output, self.criterion)
+        sample_size = self.task.grad_denom(sample_size, self.criterion)
 
         # update meters for validation
         ntokens = logging_output.get('ntokens', 0)
-        self.meters['valid_loss'].update(logging_output.get('loss', 0), sample_size)
+        self.meters['valid_loss'].update(logging_output.get('loss', 0),
+                                         sample_size)
         if 'valid_acc' in self.meters:
-            self.meters['valid_acc'].update(
-                logging_output.get('acc', 0), sample_size)
+            self.meters['valid_acc'].update(logging_output.get('acc', 0),
+                                            sample_size)
 
         if 'nll_loss' in logging_output:
-            self.meters['valid_nll_loss'].update(logging_output.get('nll_loss', 0), ntokens)
+            self.meters['valid_nll_loss'].update(
+                logging_output.get('nll_loss', 0), ntokens)
 
         return logging_output
 

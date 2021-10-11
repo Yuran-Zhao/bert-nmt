@@ -33,14 +33,12 @@ class CosineSchedule(FairseqLRScheduler):
     range and ``t_i`` is the current period range, which is scaled by ``t_mul``
     after every iteration.
     """
-
     def __init__(self, args, optimizer):
         super().__init__(args, optimizer)
         if len(args.lr) > 1:
             raise ValueError(
                 'Cannot use a fixed learning rate schedule with cosine.'
-                ' Consider --lr-scheduler=fixed instead.'
-            )
+                ' Consider --lr-scheduler=fixed instead.')
 
         warmup_end_lr = args.max_lr
         if args.warmup_init_lr < 0:
@@ -60,7 +58,8 @@ class CosineSchedule(FairseqLRScheduler):
 
         if args.warmup_updates > 0:
             # linearly warmup for the first args.warmup_updates
-            self.lr_step = (warmup_end_lr - args.warmup_init_lr) / args.warmup_updates
+            self.lr_step = (warmup_end_lr -
+                            args.warmup_init_lr) / args.warmup_updates
         else:
             self.lr_step = 1
 
@@ -75,17 +74,38 @@ class CosineSchedule(FairseqLRScheduler):
     def add_args(parser):
         """Add arguments to the parser for this LR scheduler."""
         # fmt: off
-        parser.add_argument('--warmup-updates', default=0, type=int, metavar='N',
-                            help='warmup the learning rate linearly for the first N updates')
-        parser.add_argument('--warmup-init-lr', default=-1, type=float, metavar='LR',
-                            help='initial learning rate during warmup phase; default is args.lr')
-        parser.add_argument('--max-lr', required=True, type=float, metavar='LR',
+        parser.add_argument(
+            '--warmup-updates',
+            default=0,
+            type=int,
+            metavar='N',
+            help='warmup the learning rate linearly for the first N updates')
+        parser.add_argument(
+            '--warmup-init-lr',
+            default=-1,
+            type=float,
+            metavar='LR',
+            help='initial learning rate during warmup phase; default is args.lr'
+        )
+        parser.add_argument('--max-lr',
+                            required=True,
+                            type=float,
+                            metavar='LR',
                             help='max learning rate, must be more than args.lr')
-        parser.add_argument('--t-mult', default=1, type=float, metavar='LR',
+        parser.add_argument('--t-mult',
+                            default=1,
+                            type=float,
+                            metavar='LR',
                             help='factor to grow the length of each period')
-        parser.add_argument('--lr-period-updates', default=-1, type=float, metavar='LR',
+        parser.add_argument('--lr-period-updates',
+                            default=-1,
+                            type=float,
+                            metavar='LR',
                             help='initial number of updates per period')
-        parser.add_argument('--lr-shrink', default=0.1, type=float, metavar='LS',
+        parser.add_argument('--lr-shrink',
+                            default=0.1,
+                            type=float,
+                            metavar='LS',
                             help='shrink factor for annealing')
         # fmt: on
 
@@ -102,19 +122,23 @@ class CosineSchedule(FairseqLRScheduler):
         else:
             curr_updates = num_updates - self.args.warmup_updates
             if self.t_mult != 1:
-                i = math.floor(math.log(1 - curr_updates / self.period * (1 - self.t_mult), self.t_mult))
-                t_i = self.t_mult ** i * self.period
-                t_curr = curr_updates - (1 - self.t_mult ** i) / (1 - self.t_mult) * self.period
+                i = math.floor(
+                    math.log(1 - curr_updates / self.period * (1 - self.t_mult),
+                             self.t_mult))
+                t_i = self.t_mult**i * self.period
+                t_curr = curr_updates - (1 - self.t_mult**i) / (
+                    1 - self.t_mult) * self.period
             else:
                 i = math.floor(curr_updates / self.period)
                 t_i = self.period
                 t_curr = curr_updates - (self.period * i)
 
-            lr_shrink = self.lr_shrink ** i
+            lr_shrink = self.lr_shrink**i
             min_lr = self.min_lr * lr_shrink
             max_lr = self.max_lr * lr_shrink
 
-            self.lr = min_lr + 0.5 * (max_lr - min_lr) * (1 + math.cos(math.pi * t_curr / t_i))
+            self.lr = min_lr + 0.5 * (max_lr - min_lr) * (
+                1 + math.cos(math.pi * t_curr / t_i))
 
         self.optimizer.set_lr(self.lr)
         return self.lr

@@ -35,15 +35,13 @@ class BertDictionary(MaskedLMDictionary):
     Dictionary for BERT task. This extends MaskedLMDictionary by adding support
     for cls and sep symbols.
     """
-    def __init__(
-        self,
-        pad='<pad>',
-        eos='</s>',
-        unk='<unk>',
-        mask='<mask>',
-        cls='<cls>',
-        sep='<sep>'
-    ):
+    def __init__(self,
+                 pad='<pad>',
+                 eos='</s>',
+                 unk='<unk>',
+                 mask='<mask>',
+                 cls='<cls>',
+                 sep='<sep>'):
         super().__init__(pad, eos, unk, mask)
         self.cls_word = cls
         self.sep_word = sep

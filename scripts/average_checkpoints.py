@@ -32,9 +32,8 @@ def average_checkpoints(inputs):
     for f in inputs:
         state = torch.load(
             f,
-            map_location=(
-                lambda s, _: torch.serialization.default_restore_location(s, 'cpu')
-            ),
+            map_location=(lambda s, _: torch.serialization.
+                          default_restore_location(s, 'cpu')),
         )
         # Copies over the settings from the first checkpoint
         if new_state is None:
@@ -46,10 +45,9 @@ def average_checkpoints(inputs):
         if params_keys is None:
             params_keys = model_params_keys
         elif params_keys != model_params_keys:
-            raise KeyError(
-                'For checkpoint {}, expected list of params: {}, '
-                'but found: {}'.format(f, params_keys, model_params_keys)
-            )
+            raise KeyError('For checkpoint {}, expected list of params: {}, '
+                           'but found: {}'.format(f, params_keys,
+                                                  model_params_keys))
 
         for k in params_keys:
             p = model_params[k]
@@ -86,30 +84,47 @@ def last_n_checkpoints(paths, n, update_based, upper_bound=None):
             if upper_bound is None or sort_key <= upper_bound:
                 entries.append((sort_key, m.group(0)))
     if len(entries) < n:
-        raise Exception('Found {} checkpoint files but need at least {}', len(entries), n)
+        raise Exception('Found {} checkpoint files but need at least {}',
+                        len(entries), n)
     return [os.path.join(path, x[1]) for x in sorted(entries, reverse=True)[:n]]
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='Tool to average the params of input checkpoints to '
-                    'produce a new checkpoint',
-    )
+        'produce a new checkpoint', )
     # fmt: off
-    parser.add_argument('--inputs', required=True, nargs='+',
+    parser.add_argument('--inputs',
+                        required=True,
+                        nargs='+',
                         help='Input checkpoint file paths.')
-    parser.add_argument('--output', required=True, metavar='FILE',
-                        help='Write the new checkpoint containing the averaged weights to this path.')
+    parser.add_argument(
+        '--output',
+        required=True,
+        metavar='FILE',
+        help=
+        'Write the new checkpoint containing the averaged weights to this path.'
+    )
     num_group = parser.add_mutually_exclusive_group()
-    num_group.add_argument('--num-epoch-checkpoints', type=int,
-                           help='if set, will try to find checkpoints with names checkpoint_xx.pt in the path specified by input, '
-                           'and average last this many of them.')
-    num_group.add_argument('--num-update-checkpoints', type=int,
-                           help='if set, will try to find checkpoints with names checkpoint_ee_xx.pt in the path specified by input, '
-                           'and average last this many of them.')
-    parser.add_argument('--checkpoint-upper-bound', type=int,
-                        help='when using --num-epoch-checkpoints, this will set an upper bound on which checkpoint to use, '
-                        'e.g., with --num-epoch-checkpoints=10 --checkpoint-upper-bound=50, checkpoints 41-50 would be averaged.')
+    num_group.add_argument(
+        '--num-epoch-checkpoints',
+        type=int,
+        help=
+        'if set, will try to find checkpoints with names checkpoint_xx.pt in the path specified by input, '
+        'and average last this many of them.')
+    num_group.add_argument(
+        '--num-update-checkpoints',
+        type=int,
+        help=
+        'if set, will try to find checkpoints with names checkpoint_ee_xx.pt in the path specified by input, '
+        'and average last this many of them.')
+    parser.add_argument(
+        '--checkpoint-upper-bound',
+        type=int,
+        help=
+        'when using --num-epoch-checkpoints, this will set an upper bound on which checkpoint to use, '
+        'e.g., with --num-epoch-checkpoints=10 --checkpoint-upper-bound=50, checkpoints 41-50 would be averaged.'
+    )
     # fmt: on
     args = parser.parse_args()
     print(args)
@@ -129,7 +144,10 @@ def main():
 
     if num is not None:
         args.inputs = last_n_checkpoints(
-            args.inputs, num, is_update_based, upper_bound=args.checkpoint_upper_bound,
+            args.inputs,
+            num,
+            is_update_based,
+            upper_bound=args.checkpoint_upper_bound,
         )
         print('averaging checkpoints: ', args.inputs)
 

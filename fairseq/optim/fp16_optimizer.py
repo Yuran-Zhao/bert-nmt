@@ -11,10 +11,13 @@ from fairseq import optim, utils
 
 
 class DynamicLossScaler(object):
-
     def __init__(
-        self, init_scale=2.**15, scale_factor=2., scale_window=2000,
-        tolerance=0.05, threshold=None,
+        self,
+        init_scale=2.**15,
+        scale_factor=2.,
+        scale_window=2000,
+        tolerance=0.05,
+        threshold=None,
     ):
         self.loss_scale = init_scale
         self.scale_factor = scale_factor
@@ -31,7 +34,8 @@ class DynamicLossScaler(object):
         if overflow:
             self._last_overflow_iter = self._iter
             self._overflows_since_rescale += 1
-            pct_overflow = self._overflows_since_rescale / float(iter_since_rescale)
+            pct_overflow = self._overflows_since_rescale / float(
+                iter_since_rescale)
             if pct_overflow >= self.tolerance:
                 self._decrease_loss_scale()
                 self._last_rescale_iter = self._iter
@@ -58,7 +62,6 @@ class FP16Optimizer(optim.FairseqOptimizer):
     """
     Wrap an *optimizer* to support FP16 (mixed precision) training.
     """
-
     def __init__(self, args, params, fp32_optimizer, fp32_params):
         super().__init__(args, params)
         self.fp32_optimizer = fp32_optimizer
@@ -68,9 +71,9 @@ class FP16Optimizer(optim.FairseqOptimizer):
             if len(args.update_freq) > 1:
                 raise ValueError(
                     '--fp16-scale-window must be given explicitly when using a '
-                    'custom --update-freq schedule'
-                )
-            scale_window = 2**14 / args.distributed_world_size / args.update_freq[0]
+                    'custom --update-freq schedule')
+            scale_window = 2**14 / args.distributed_world_size / args.update_freq[
+                0]
         else:
             scale_window = args.fp16_scale_window
 
@@ -94,7 +97,7 @@ class FP16Optimizer(optim.FairseqOptimizer):
         offset = 0
         for p in params:
             numel = p.data.numel()
-            fp32_params[offset:offset+numel].copy_(p.data.view(-1))
+            fp32_params[offset:offset + numel].copy_(p.data.view(-1))
             offset += numel
         fp32_params = torch.nn.Parameter(fp32_params)
         fp32_params.grad = fp32_params.data.new(total_param_size)
@@ -152,13 +155,16 @@ class FP16Optimizer(optim.FairseqOptimizer):
             for p in self.params:
                 if not p.requires_grad:
                     continue
-                grad_data = p.grad.data if p.grad is not None else p.data.new_zeros(p.data.shape)
+                grad_data = p.grad.data if p.grad is not None else p.data.new_zeros(
+                    p.data.shape)
                 numel = grad_data.numel()
-                self.fp32_params.grad.data[offset:offset+numel].copy_(grad_data.view(-1))
+                self.fp32_params.grad.data[offset:offset + numel].copy_(
+                    grad_data.view(-1))
                 offset += numel
 
             # correct for dynamic loss scaler
-            self.fp32_params.grad.data.mul_(multiply_grads / self.scaler.loss_scale)
+            self.fp32_params.grad.data.mul_(multiply_grads /
+                                            self.scaler.loss_scale)
 
             self._needs_sync = False
 
@@ -184,9 +190,10 @@ class FP16Optimizer(optim.FairseqOptimizer):
                 raise FloatingPointError((
                     'Minimum loss scale reached ({}). Your loss is probably exploding. '
                     'Try lowering the learning rate, using gradient clipping or '
-                    'increasing the batch size.'
-                ).format(self.args.min_loss_scale))
-            raise OverflowError('setting loss scale to: ' + str(self.scaler.loss_scale))
+                    'increasing the batch size.').format(
+                        self.args.min_loss_scale))
+            raise OverflowError('setting loss scale to: ' +
+                                str(self.scaler.loss_scale))
         return grad_norm
 
     def step(self, closure=None):
@@ -200,7 +207,8 @@ class FP16Optimizer(optim.FairseqOptimizer):
             if not p.requires_grad:
                 continue
             numel = p.data.numel()
-            p.data.copy_(self.fp32_params.data[offset:offset+numel].view_as(p.data))
+            p.data.copy_(self.fp32_params.data[offset:offset + numel].view_as(
+                p.data))
             offset += numel
 
     def zero_grad(self):
@@ -225,12 +233,10 @@ class MemoryEfficientFP16Optimizer(optim.FairseqOptimizer):
     optimizers can be wrapped. This is determined by the
     *supports_memory_efficient_fp16* property.
     """
-
     def __init__(self, args, params, optimizer):
         if not optimizer.supports_memory_efficient_fp16:
-            raise ValueError(
-                'Unsupported optimizer: {}'.format(optimizer.__class__.__name__)
-            )
+            raise ValueError('Unsupported optimizer: {}'.format(
+                optimizer.__class__.__name__))
 
         super().__init__(args, params)
         self.wrapped_optimizer = optimizer
@@ -239,9 +245,9 @@ class MemoryEfficientFP16Optimizer(optim.FairseqOptimizer):
             if len(args.update_freq) > 1:
                 raise ValueError(
                     '--fp16-scale-window must be given explicitly when using a '
-                    'custom --update-freq schedule'
-                )
-            scale_window = 2**14 / args.distributed_world_size / args.update_freq[0]
+                    'custom --update-freq schedule')
+            scale_window = 2**14 / args.distributed_world_size / args.update_freq[
+                0]
         else:
             scale_window = args.fp16_scale_window
 
@@ -310,7 +316,8 @@ class MemoryEfficientFP16Optimizer(optim.FairseqOptimizer):
             self._grads_are_scaled = False
 
             # correct for dynamic loss scaler
-            self.wrapped_optimizer.multiply_grads(multiply_grads / self.scaler.loss_scale)
+            self.wrapped_optimizer.multiply_grads(multiply_grads /
+                                                  self.scaler.loss_scale)
         else:
             assert multiply_grads == 1.
 
@@ -336,9 +343,10 @@ class MemoryEfficientFP16Optimizer(optim.FairseqOptimizer):
                 raise FloatingPointError((
                     'Minimum loss scale reached ({}). Your loss is probably exploding. '
                     'Try lowering the learning rate, using gradient clipping or '
-                    'increasing the batch size.'
-                ).format(self.args.min_loss_scale))
-            raise OverflowError('setting loss scale to: ' + str(self.scaler.loss_scale))
+                    'increasing the batch size.').format(
+                        self.args.min_loss_scale))
+            raise OverflowError('setting loss scale to: ' +
+                                str(self.scaler.loss_scale))
 
         return grad_norm
 

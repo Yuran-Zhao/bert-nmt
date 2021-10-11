@@ -23,7 +23,6 @@ class TransformEosDataset(FairseqDataset):
         append_eos_to_tgt (bool, optional): append EOS to the end of tgt
         remove_eos_from_tgt (bool, optional): remove EOS from the end of tgt
     """
-
     def __init__(
         self,
         dataset,
@@ -37,9 +36,11 @@ class TransformEosDataset(FairseqDataset):
         if not isinstance(dataset, FairseqDataset):
             raise ValueError('dataset must be an instance of FairseqDataset')
         if append_eos_to_src and remove_eos_from_src:
-            raise ValueError('cannot combine append_eos_to_src and remove_eos_from_src')
+            raise ValueError(
+                'cannot combine append_eos_to_src and remove_eos_from_src')
         if append_eos_to_tgt and remove_eos_from_tgt:
-            raise ValueError('cannot combine append_eos_to_tgt and remove_eos_from_tgt')
+            raise ValueError(
+                'cannot combine append_eos_to_tgt and remove_eos_from_tgt')
 
         self.dataset = dataset
         self.eos = torch.LongTensor([eos])
@@ -77,7 +78,6 @@ class TransformEosDataset(FairseqDataset):
         return len(self.dataset)
 
     def collater(self, samples):
-
         def transform(item):
             if self.append_eos_to_src:
                 self._check_src(item['source'], expect_eos=False)

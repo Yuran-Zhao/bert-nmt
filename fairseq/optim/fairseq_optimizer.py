@@ -11,7 +11,6 @@ import torch
 
 
 class FairseqOptimizer(object):
-
     def __init__(self, args, params):
         super().__init__()
         self.args = args
@@ -28,7 +27,8 @@ class FairseqOptimizer(object):
         if not hasattr(self, '_optimizer'):
             raise NotImplementedError
         if not isinstance(self._optimizer, torch.optim.Optimizer):
-            raise ValueError('_optimizer must be an instance of torch.optim.Optimizer')
+            raise ValueError(
+                '_optimizer must be an instance of torch.optim.Optimizer')
         return self._optimizer
 
     @property
@@ -84,7 +84,9 @@ class FairseqOptimizer(object):
         if max_norm > 0:
             return torch.nn.utils.clip_grad_norm_(self.params, max_norm)
         else:
-            return math.sqrt(sum(p.grad.data.norm()**2 for p in self.params if p.grad is not None))
+            return math.sqrt(
+                sum(p.grad.data.norm()**2 for p in self.params
+                    if p.grad is not None))
 
     def step(self, closure=None):
         """Performs a single optimization step."""

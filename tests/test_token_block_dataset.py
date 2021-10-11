@@ -15,7 +15,6 @@ import tests.utils as test_utils
 
 
 class TestTokenBlockDataset(unittest.TestCase):
-
     def _build_dataset(self, data, **kwargs):
         sizes = [len(x) for x in data]
         underlying_ds = test_utils.TestDataset(data)
@@ -27,7 +26,11 @@ class TestTokenBlockDataset(unittest.TestCase):
             torch.tensor([1], dtype=torch.long),
             torch.tensor([8, 7, 6, 1], dtype=torch.long),
         ]
-        ds = self._build_dataset(data, block_size=None, pad=0, eos=1, break_mode='eos')
+        ds = self._build_dataset(data,
+                                 block_size=None,
+                                 pad=0,
+                                 eos=1,
+                                 break_mode='eos')
         self.assertEqual(ds[0].tolist(), [5, 4, 3, 2, 1])
         self.assertEqual(ds[1].tolist(), [1])
         self.assertEqual(ds[2].tolist(), [8, 7, 6, 1])
@@ -37,7 +40,11 @@ class TestTokenBlockDataset(unittest.TestCase):
             torch.tensor([8, 7, 6, 1], dtype=torch.long),
             torch.tensor([1], dtype=torch.long),
         ]
-        ds = self._build_dataset(data, block_size=None, pad=0, eos=1, break_mode='eos')
+        ds = self._build_dataset(data,
+                                 block_size=None,
+                                 pad=0,
+                                 eos=1,
+                                 break_mode='eos')
         self.assertEqual(ds[0].tolist(), [5, 4, 3, 2, 1])
         self.assertEqual(ds[1].tolist(), [8, 7, 6, 1])
         self.assertEqual(ds[2].tolist(), [1])
@@ -48,7 +55,11 @@ class TestTokenBlockDataset(unittest.TestCase):
             torch.tensor([8, 7, 6, 1], dtype=torch.long),
             torch.tensor([9, 1], dtype=torch.long),
         ]
-        ds = self._build_dataset(data, block_size=3, pad=0, eos=1, break_mode='none')
+        ds = self._build_dataset(data,
+                                 block_size=3,
+                                 pad=0,
+                                 eos=1,
+                                 break_mode='none')
         self.assertEqual(ds[0].tolist(), [5, 4, 3])
         self.assertEqual(ds[1].tolist(), [2, 1, 8])
         self.assertEqual(ds[2].tolist(), [7, 6, 1])
@@ -60,7 +71,11 @@ class TestTokenBlockDataset(unittest.TestCase):
             torch.tensor([8, 7, 6, 1], dtype=torch.long),
             torch.tensor([9, 1], dtype=torch.long),
         ]
-        ds = self._build_dataset(data, block_size=6, pad=0, eos=1, break_mode='complete')
+        ds = self._build_dataset(data,
+                                 block_size=6,
+                                 pad=0,
+                                 eos=1,
+                                 break_mode='complete')
         self.assertEqual(ds[0].tolist(), [5, 4, 3, 2, 1])
         self.assertEqual(ds[1].tolist(), [8, 7, 6, 1, 9, 1])
 
@@ -70,7 +85,11 @@ class TestTokenBlockDataset(unittest.TestCase):
             torch.tensor([1], dtype=torch.long),
             torch.tensor([6, 1], dtype=torch.long),
         ]
-        ds = self._build_dataset(data, block_size=3, pad=0, eos=1, break_mode='complete')
+        ds = self._build_dataset(data,
+                                 block_size=3,
+                                 pad=0,
+                                 eos=1,
+                                 break_mode='complete')
         self.assertEqual(ds[0].tolist(), [4, 3, 2, 1])
         self.assertEqual(ds[1].tolist(), [5, 1, 1])
         self.assertEqual(ds[2].tolist(), [6, 1])

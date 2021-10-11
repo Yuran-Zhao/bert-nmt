@@ -11,7 +11,6 @@ from . import FairseqLRScheduler, register_lr_scheduler
 @register_lr_scheduler('fixed')
 class FixedSchedule(FairseqLRScheduler):
     """Decay the LR on a fixed schedule."""
-
     def __init__(self, args, optimizer):
         super().__init__(args, optimizer)
 
@@ -28,12 +27,23 @@ class FixedSchedule(FairseqLRScheduler):
     def add_args(parser):
         """Add arguments to the parser for this LR scheduler."""
         # fmt: off
-        parser.add_argument('--force-anneal', '--fa', type=int, metavar='N',
+        parser.add_argument('--force-anneal',
+                            '--fa',
+                            type=int,
+                            metavar='N',
                             help='force annealing at specified epoch')
-        parser.add_argument('--lr-shrink', default=0.1, type=float, metavar='LS',
-                            help='shrink factor for annealing, lr_new = (lr * lr_shrink)')
-        parser.add_argument('--warmup-updates', default=0, type=int, metavar='N',
-                            help='warmup the learning rate linearly for the first N updates')
+        parser.add_argument(
+            '--lr-shrink',
+            default=0.1,
+            type=float,
+            metavar='LS',
+            help='shrink factor for annealing, lr_new = (lr * lr_shrink)')
+        parser.add_argument(
+            '--warmup-updates',
+            default=0,
+            type=int,
+            metavar='N',
+            help='warmup the learning rate linearly for the first N updates')
         # fmt: on
 
     def get_next_lr(self, epoch):
@@ -43,7 +53,8 @@ class FixedSchedule(FairseqLRScheduler):
             next_lr = lrs[min(epoch, len(lrs) - 1)]
         else:
             # annneal based on lr_shrink
-            next_lr = lrs[-1] * self.args.lr_shrink ** (epoch + 1 - self.args.force_anneal)
+            next_lr = lrs[-1] * self.args.lr_shrink**(epoch + 1 -
+                                                      self.args.force_anneal)
         return next_lr
 
     def step(self, epoch, val_loss=None):

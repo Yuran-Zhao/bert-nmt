@@ -16,14 +16,12 @@ class TriangularSchedule(FairseqLRScheduler):
 
     See https://arxiv.org/pdf/1506.01186.pdf for details.
     """
-
     def __init__(self, args, optimizer):
         super().__init__(args, optimizer)
         if len(args.lr) > 1:
             raise ValueError(
                 'Cannot use a fixed learning rate schedule with triangular.'
-                ' Consider --lr-scheduler=fixed instead.'
-            )
+                ' Consider --lr-scheduler=fixed instead.')
 
         lr = args.lr[0]
 
@@ -42,13 +40,24 @@ class TriangularSchedule(FairseqLRScheduler):
     def add_args(parser):
         """Add arguments to the parser for this LR scheduler."""
         # fmt: off
-        parser.add_argument('--max-lr', required=True, type=float, metavar='LR',
+        parser.add_argument('--max-lr',
+                            required=True,
+                            type=float,
+                            metavar='LR',
                             help='max learning rate, must be more than args.lr')
-        parser.add_argument('--lr-period-updates', default=5000, type=float, metavar='LR',
-                            help='initial number of updates per period (cycle length)')
-        parser.add_argument('--lr-shrink', default=0.1, type=float, metavar='LS',
+        parser.add_argument(
+            '--lr-period-updates',
+            default=5000,
+            type=float,
+            metavar='LR',
+            help='initial number of updates per period (cycle length)')
+        parser.add_argument('--lr-shrink',
+                            default=0.1,
+                            type=float,
+                            metavar='LS',
                             help='shrink factor for annealing')
-        parser.add_argument('--shrink-min', action='store_true',
+        parser.add_argument('--shrink-min',
+                            action='store_true',
                             help='if set, also shrinks min lr')
         # fmt: on
 
@@ -62,7 +71,7 @@ class TriangularSchedule(FairseqLRScheduler):
         """Update the learning rate after each update."""
         cycle = math.floor(num_updates / (2 * self.stepsize))
 
-        lr_shrink = self.lr_shrink ** cycle
+        lr_shrink = self.lr_shrink**cycle
         max_lr = self.max_lr * lr_shrink
         if self.shrink_min:
             min_lr = self.min_lr * lr_shrink

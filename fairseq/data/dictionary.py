@@ -18,7 +18,6 @@ from fairseq.data import data_utils
 
 class Dictionary(object):
     """A mapping from symbols to consecutive integers"""
-
     def __init__(self, pad='<pad>', eos='</s>', unk='<unk>', bos='<s>'):
         self.unk_word, self.pad_word, self.eos_word = unk, pad, eos
         self.symbols = []
@@ -112,11 +111,16 @@ class Dictionary(object):
         if nwords <= 0:
             nwords = len(self)
 
-        new_indices = dict(zip(self.symbols[:self.nspecial], range(self.nspecial)))
+        new_indices = dict(
+            zip(self.symbols[:self.nspecial], range(self.nspecial)))
         new_symbols = self.symbols[:self.nspecial]
         new_count = self.count[:self.nspecial]
 
-        c = Counter(dict(sorted(zip(self.symbols[self.nspecial:], self.count[self.nspecial:]))))
+        c = Counter(
+            dict(
+                sorted(
+                    zip(self.symbols[self.nspecial:],
+                        self.count[self.nspecial:]))))
         for symbol, count in c.most_common(nwords - self.nspecial):
             if count >= threshold:
                 new_indices[symbol] = len(new_symbols)
@@ -189,7 +193,8 @@ class Dictionary(object):
         for line in lines[indices_start_line:]:
             idx = line.rfind(' ')
             if idx == -1:
-                raise ValueError("Incorrect dictionary format, expected '<token> <cnt>'")
+                raise ValueError(
+                    "Incorrect dictionary format, expected '<token> <cnt>'")
             word = line[:idx]
             count = int(line[idx + 1:])
             d.indices[word] = len(d.symbols)
@@ -214,15 +219,23 @@ class Dictionary(object):
     def save(self, f):
         """Stores dictionary into a text file"""
         ex_keys, ex_vals = self._get_meta()
-        self._save(f, zip(ex_keys + self.symbols[self.nspecial:], ex_vals + self.count[self.nspecial:]))
+        self._save(
+            f,
+            zip(ex_keys + self.symbols[self.nspecial:],
+                ex_vals + self.count[self.nspecial:]))
 
     def dummy_sentence(self, length):
         t = torch.Tensor(length).uniform_(self.nspecial + 1, len(self)).long()
         t[-1] = self.eos()
         return t
 
-    def encode_line(self, line, line_tokenizer=tokenize_line, add_if_not_exist=True,
-                    consumer=None, append_eos=True, reverse_order=False):
+    def encode_line(self,
+                    line,
+                    line_tokenizer=tokenize_line,
+                    add_if_not_exist=True,
+                    consumer=None,
+                    append_eos=True,
+                    reverse_order=False):
         words = line_tokenizer(line)
         if reverse_order:
             words = list(reversed(words))
@@ -242,7 +255,11 @@ class Dictionary(object):
         return ids
 
     @staticmethod
-    def _add_file_to_dictionary_single_worker(filename, tokenize, eos_word, worker_id=0, num_workers=1):
+    def _add_file_to_dictionary_single_worker(filename,
+                                              tokenize,
+                                              eos_word,
+                                              worker_id=0,
+                                              num_workers=1):
         counter = Counter()
         with open(filename, 'r', encoding='utf-8') as f:
             size = os.fstat(f.fileno()).st_size
@@ -272,26 +289,25 @@ class Dictionary(object):
             pool = Pool(processes=num_workers)
             results = []
             for worker_id in range(num_workers):
-                results.append(pool.apply_async(
-                    Dictionary._add_file_to_dictionary_single_worker,
-                    (filename, tokenize, dict.eos_word, worker_id, num_workers)
-                ))
+                results.append(
+                    pool.apply_async(
+                        Dictionary._add_file_to_dictionary_single_worker,
+                        (filename, tokenize, dict.eos_word, worker_id,
+                         num_workers)))
             pool.close()
             pool.join()
             for r in results:
                 merge_result(r.get())
         else:
-            merge_result(Dictionary._add_file_to_dictionary_single_worker(filename, tokenize, dict.eos_word))
+            merge_result(
+                Dictionary._add_file_to_dictionary_single_worker(
+                    filename, tokenize, dict.eos_word))
 
 
 class TruncatedDictionary(object):
-
     def __init__(self, wrapped_dict, length):
-        self.__class__ = type(
-            wrapped_dict.__class__.__name__,
-            (self.__class__, wrapped_dict.__class__),
-            {}
-        )
+        self.__class__ = type(wrapped_dict.__class__.__name__,
+                              (self.__class__, wrapped_dict.__class__), {})
         self.__dict__ = wrapped_dict.__dict__
         self.wrapped_dict = wrapped_dict
         self.length = min(len(self.wrapped_dict), length)

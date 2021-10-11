@@ -9,7 +9,6 @@ from torch.nn.modules.loss import _Loss
 
 
 class FairseqCriterion(_Loss):
-
     def __init__(self, args, task):
         super().__init__()
         self.args = args

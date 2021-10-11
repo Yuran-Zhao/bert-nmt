@@ -29,11 +29,14 @@ class FairseqIncrementalDecoder(FairseqDecoder):
     To learn more about how incremental decoding works, refer to `this blog
     <http://www.telesens.co/2019/04/21/understanding-incremental-decoding-in-fairseq/>`_.
     """
-
     def __init__(self, dictionary):
         super().__init__(dictionary)
 
-    def forward(self, prev_output_tokens, encoder_out=None, incremental_state=None, **kwargs):
+    def forward(self,
+                prev_output_tokens,
+                encoder_out=None,
+                incremental_state=None,
+                **kwargs):
         """
         Args:
             prev_output_tokens (LongTensor): shifted output tokens of shape
@@ -50,7 +53,11 @@ class FairseqIncrementalDecoder(FairseqDecoder):
         """
         raise NotImplementedError
 
-    def extract_features(self, prev_output_tokens, encoder_out=None, incremental_state=None, **kwargs):
+    def extract_features(self,
+                         prev_output_tokens,
+                         encoder_out=None,
+                         incremental_state=None,
+                         **kwargs):
         """
         Returns:
             tuple:

@@ -5,7 +5,6 @@
 # This source code is licensed under the license found in the LICENSE file in
 # the root directory of this source tree. An additional grant of patent rights
 # can be found in the PATENTS file in the same directory.
-
 """
 Evaluate the perplexity of a trained language model.
 """
@@ -41,8 +40,9 @@ class WordStat(object):
         self.count += 1
 
     def __str__(self):
-        return '{}\t{}\t{}\t{}\t{}\t{}'.format(self.word, self.count, self.log_prob, self.is_bpe,
-                                               self.next_word_prob, self.count - self.missing_next_words)
+        return '{}\t{}\t{}\t{}\t{}\t{}'.format(
+            self.word, self.count, self.log_prob, self.is_bpe,
+            self.next_word_prob, self.count - self.missing_next_words)
 
 
 def main(parsed_args):
@@ -66,8 +66,12 @@ def main(parsed_args):
 
     for arg in vars(parsed_args).keys():
         if arg not in {
-            'self_target', 'future_target', 'past_target', 'tokens_per_sample',
-            'output_size_dictionary', 'add_bos_token',
+                'self_target',
+                'future_target',
+                'past_target',
+                'tokens_per_sample',
+                'output_size_dictionary',
+                'add_bos_token',
         }:
             setattr(args, arg, getattr(parsed_args, arg))
 
@@ -85,7 +89,8 @@ def main(parsed_args):
             context_window=args.context_window,
             pad_idx=task.source_dictionary.pad(),
         )
-    print('| {} {} {} examples'.format(args.data, args.gen_subset, len(dataset)))
+    print('| {} {} {} examples'.format(args.data, args.gen_subset,
+                                       len(dataset)))
 
     # Optimize ensemble for generation and set the source and dest dicts on the model (required by scorer)
     for model in models:
@@ -97,15 +102,15 @@ def main(parsed_args):
 
     assert len(models) > 0
 
-    print('num. model params: {}'.format(sum(p.numel() for p in models[0].parameters())))
+    print('num. model params: {}'.format(
+        sum(p.numel() for p in models[0].parameters())))
 
     itr = task.get_batch_iterator(
         dataset=dataset,
         max_tokens=args.max_tokens or 36000,
         max_sentences=args.max_sentences,
-        max_positions=utils.resolve_max_positions(*[
-            model.max_positions() for model in models
-        ]),
+        max_positions=utils.resolve_max_positions(
+            *[model.max_positions() for model in models]),
         ignore_invalid_inputs=True,
         num_shards=args.num_shards,
         shard_id=args.shard_id,
@@ -123,11 +128,8 @@ def main(parsed_args):
             raise NotImplementedError
         else:
             bpe_cont = args.remove_bpe.rstrip()
-            bpe_toks = set(
-                i
-                for i in range(len(task.source_dictionary))
-                if task.source_dictionary[i].endswith(bpe_cont)
-            )
+            bpe_toks = set(i for i in range(len(task.source_dictionary))
+                           if task.source_dictionary[i].endswith(bpe_cont))
         bpe_len = len(bpe_cont)
     else:
         bpe_toks = None
@@ -156,7 +158,8 @@ def main(parsed_args):
                 pos_scores = hypo['positional_scores'].float()
 
                 if args.add_bos_token:
-                    assert hypo['tokens'][0].item() == task.target_dictionary.bos()
+                    assert hypo['tokens'][0].item(
+                    ) == task.target_dictionary.bos()
                     tokens = tokens[1:]
                     pos_scores = pos_scores[1:]
 
@@ -168,10 +171,13 @@ def main(parsed_args):
                             pos_scores[i + 1] += pos_scores[i]
                             pos_scores[i] = 0
 
-                inf_scores = pos_scores.eq(float('inf')) | pos_scores.eq(float('-inf'))
+                inf_scores = pos_scores.eq(float('inf')) | pos_scores.eq(
+                    float('-inf'))
                 if inf_scores.any():
-                    print('| Skipping tokens with inf scores:',
-                          task.target_dictionary.string(tokens[inf_scores.nonzero()]))
+                    print(
+                        '| Skipping tokens with inf scores:',
+                        task.target_dictionary.string(
+                            tokens[inf_scores.nonzero()]))
                     pos_scores = pos_scores[(~inf_scores).nonzero()]
                 score_sum += pos_scores.sum().cpu()
                 count += pos_scores.numel() - skipped_toks
@@ -197,21 +203,27 @@ def main(parsed_args):
                                     break
                                 ind += 1
 
-                            word_stats.setdefault(w, WordStat(w, is_bpe)).add(pos_scores[i].item(), next_prob)
+                            word_stats.setdefault(w, WordStat(w, is_bpe)).add(
+                                pos_scores[i].item(), next_prob)
                             is_bpe = False
                             w = ''
                     if args.output_word_probs:
-                        print('\t'.join('{} [{:2f}]'.format(x[0], x[1]) for x in word_prob))
+                        print('\t'.join('{} [{:2f}]'.format(x[0], x[1])
+                                        for x in word_prob))
 
             wps_meter.update(sample['ntokens'])
             t.log({'wps': round(wps_meter.avg)})
 
     avg_nll_loss = -score_sum / count
-    print('| Evaluated {} tokens in {:.1f}s ({:.2f} tokens/s)'.format(gen_timer.n, gen_timer.sum, 1. / gen_timer.avg))
-    print('| Loss: {:.4f}, Perplexity: {:.2f}'.format(avg_nll_loss, np.exp(avg_nll_loss)))
+    print('| Evaluated {} tokens in {:.1f}s ({:.2f} tokens/s)'.format(
+        gen_timer.n, gen_timer.sum, 1. / gen_timer.avg))
+    print('| Loss: {:.4f}, Perplexity: {:.2f}'.format(avg_nll_loss,
+                                                      np.exp(avg_nll_loss)))
 
     if args.output_word_stats:
-        for ws in sorted(word_stats.values(), key=lambda x: x.count, reverse=True):
+        for ws in sorted(word_stats.values(),
+                         key=lambda x: x.count,
+                         reverse=True):
             print(ws)
 
 

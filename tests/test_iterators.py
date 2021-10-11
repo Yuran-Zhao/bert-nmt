@@ -11,7 +11,6 @@ from fairseq.data import iterators
 
 
 class TestIterators(unittest.TestCase):
-
     def test_counting_iterator(self):
         x = list(range(10))
         itr = iterators.CountingIterator(x)

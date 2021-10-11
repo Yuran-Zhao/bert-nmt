@@ -12,7 +12,12 @@ from . import data_utils, FairseqDataset
 
 
 def collate(
-    samples, pad_idx, eos_idx,bert_pad_idx, left_pad_source=True, left_pad_target=False,
+    samples,
+    pad_idx,
+    eos_idx,
+    bert_pad_idx,
+    left_pad_source=True,
+    left_pad_target=False,
     input_feeding=True,
 ):
     if len(samples) == 0:
@@ -20,13 +25,15 @@ def collate(
 
     def merge(key, left_pad, move_eos_to_beginning=False, bert_input=False):
         return data_utils.collate_tokens(
-            [s[key] for s in samples],
-            pad_idx if not bert_input else bert_pad_idx, eos_idx, left_pad, move_eos_to_beginning
-        )
+            [s[key]
+             for s in samples], pad_idx if not bert_input else bert_pad_idx,
+            eos_idx, left_pad, move_eos_to_beginning)
 
     id = torch.LongTensor([s['id'] for s in samples])
     src_tokens = merge('source', left_pad=left_pad_source)
-    src_bert_tokens = merge('source_bert', left_pad=left_pad_source, bert_input=True)
+    src_bert_tokens = merge('source_bert',
+                            left_pad=left_pad_source,
+                            bert_input=True)
     # sort by descending source length
     src_lengths = torch.LongTensor([s['source'].numel() for s in samples])
     src_lengths, sort_order = src_lengths.sort(descending=True)
@@ -98,14 +105,25 @@ class LanguagePairDataset(FairseqDataset):
         append_eos_to_target (bool, optional): if set, appends eos to end of
             target if it's absent (default: False).
     """
-
     def __init__(
-        self, src, src_sizes, src_dict,
-        tgt=None, tgt_sizes=None, tgt_dict=None,
-        srcbert=None, srcbert_sizes=None, berttokenizer=None,
-        left_pad_source=True, left_pad_target=False,
-        max_source_positions=1024, max_target_positions=1024,
-        shuffle=True, input_feeding=True, remove_eos_from_source=False, append_eos_to_target=False,
+        self,
+        src,
+        src_sizes,
+        src_dict,
+        tgt=None,
+        tgt_sizes=None,
+        tgt_dict=None,
+        srcbert=None,
+        srcbert_sizes=None,
+        berttokenizer=None,
+        left_pad_source=True,
+        left_pad_target=False,
+        max_source_positions=1024,
+        max_target_positions=1024,
+        shuffle=True,
+        input_feeding=True,
+        remove_eos_from_source=False,
+        append_eos_to_target=False,
     ):
         if tgt_dict is not None:
             assert src_dict.pad() == tgt_dict.pad()
@@ -116,7 +134,8 @@ class LanguagePairDataset(FairseqDataset):
         self.srcbert = srcbert
         self.src_sizes = np.array(src_sizes)
         self.tgt_sizes = np.array(tgt_sizes) if tgt_sizes is not None else None
-        self.srcbert_sizes = np.array(srcbert_sizes) if srcbert_sizes is not None else None
+        self.srcbert_sizes = np.array(
+            srcbert_sizes) if srcbert_sizes is not None else None
         self.src_dict = src_dict
         self.tgt_dict = tgt_dict
         self.berttokenizer = berttokenizer
@@ -187,8 +206,12 @@ class LanguagePairDataset(FairseqDataset):
                   on the left if *left_pad_target* is ``True``.
         """
         return collate(
-            samples, pad_idx=self.src_dict.pad(), eos_idx=self.src_dict.eos(), bert_pad_idx=self.berttokenizer.pad(),
-            left_pad_source=self.left_pad_source, left_pad_target=self.left_pad_target,
+            samples,
+            pad_idx=self.src_dict.pad(),
+            eos_idx=self.src_dict.eos(),
+            bert_pad_idx=self.berttokenizer.pad(),
+            left_pad_source=self.left_pad_source,
+            left_pad_target=self.left_pad_target,
             input_feeding=self.input_feeding,
         )
 
@@ -196,13 +219,15 @@ class LanguagePairDataset(FairseqDataset):
         """Return the number of tokens in a sample. This value is used to
         enforce ``--max-tokens`` during batching."""
         # return max(self.src_sizes[index], self.tgt_sizes[index] if self.tgt_sizes is not None else 0)
-        a = max(self.src_sizes[index], self.tgt_sizes[index] if self.tgt_sizes is not None else 0)
+        a = max(self.src_sizes[index],
+                self.tgt_sizes[index] if self.tgt_sizes is not None else 0)
         return max(a, self.srcbert_sizes[index])
 
     def size(self, index):
         """Return an example's size as a float or tuple. This value is used when
         filtering a dataset with ``--max-positions``."""
-        return (self.src_sizes[index], self.tgt_sizes[index] if self.tgt_sizes is not None else 0)
+        return (self.src_sizes[index],
+                self.tgt_sizes[index] if self.tgt_sizes is not None else 0)
 
     def ordered_indices(self):
         """Return an ordered list of indices. Batches will be constructed based
@@ -212,15 +237,15 @@ class LanguagePairDataset(FairseqDataset):
         else:
             indices = np.arange(len(self))
         if self.tgt_sizes is not None:
-            indices = indices[np.argsort(self.tgt_sizes[indices], kind='mergesort')]
+            indices = indices[np.argsort(self.tgt_sizes[indices],
+                                         kind='mergesort')]
         return indices[np.argsort(self.src_sizes[indices], kind='mergesort')]
 
     @property
     def supports_prefetch(self):
-        return (
-            getattr(self.src, 'supports_prefetch', False)
-            and (getattr(self.tgt, 'supports_prefetch', False) or self.tgt is None)
-        )
+        return (getattr(self.src, 'supports_prefetch', False)
+                and (getattr(self.tgt, 'supports_prefetch', False)
+                     or self.tgt is None))
 
     def prefetch(self, indices):
         self.src.prefetch(indices)

@@ -38,17 +38,16 @@ def backtranslate_samples(samples, collate_fn, generate_fn, cuda=True):
     s = utils.move_to_cuda(collated_samples) if cuda else collated_samples
     generated_sources = generate_fn(s)
 
-    id_to_src = {
-        sample['id']: sample['source'] for sample in samples
-    }
+    id_to_src = {sample['id']: sample['source'] for sample in samples}
 
     # Go through each tgt sentence in batch and its corresponding best
     # generated hypothesis and create a backtranslation data pair
     # {id: id, source: generated backtranslation, target: original tgt}
-    return [
-        {'id': id.item(), 'target': id_to_src[id.item()], 'source': hypos[0]['tokens'].cpu()}
-        for id, hypos in zip(collated_samples['id'], generated_sources)
-    ]
+    return [{
+        'id': id.item(),
+        'target': id_to_src[id.item()],
+        'source': hypos[0]['tokens'].cpu()
+    } for id, hypos in zip(collated_samples['id'], generated_sources)]
 
 
 class BacktranslationDataset(FairseqDataset):
@@ -76,17 +75,14 @@ class BacktranslationDataset(FairseqDataset):
             (default: ``tgt_dataset.collater``).
         cuda: use GPU for generation
     """
-
-    def __init__(
-        self,
-        tgt_dataset,
-        src_dict,
-        tgt_dict=None,
-        backtranslation_fn=None,
-        output_collater=None,
-        cuda=True,
-        **kwargs
-    ):
+    def __init__(self,
+                 tgt_dataset,
+                 src_dict,
+                 tgt_dict=None,
+                 backtranslation_fn=None,
+                 output_collater=None,
+                 cuda=True,
+                 **kwargs):
         self.tgt_dataset = tgt_dataset
         self.backtranslation_fn = backtranslation_fn
         self.output_collater = output_collater if output_collater is not None \
@@ -133,9 +129,7 @@ class BacktranslationDataset(FairseqDataset):
         samples = backtranslate_samples(
             samples=samples,
             collate_fn=self.tgt_dataset.collater,
-            generate_fn=(
-                lambda net_input: self.backtranslation_fn(net_input)
-            ),
+            generate_fn=(lambda net_input: self.backtranslation_fn(net_input)),
             cuda=self.cuda,
         )
         return self.output_collater(samples)

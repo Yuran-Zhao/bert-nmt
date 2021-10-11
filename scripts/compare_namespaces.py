@@ -24,7 +24,8 @@ def main():
             if ns2 is None:
                 print('{}\t{}'.format(k, getattr(ns1, k, None)))
             else:
-                print('{}\t{}\t{}'.format(k, getattr(ns1, k, None), getattr(ns2, k, None)))
+                print('{}\t{}\t{}'.format(k, getattr(ns1, k, None),
+                                          getattr(ns2, k, None)))
 
     print('Keys unique to namespace 1:')
     print_keys(k1 - k2, ns1)
@@ -35,7 +36,10 @@ def main():
     print()
 
     print('Overlapping keys with different values:')
-    ks = [k for k in k1 & k2 if getattr(ns1, k, 'None') != getattr(ns2, k, 'None')]
+    ks = [
+        k for k in k1 & k2
+        if getattr(ns1, k, 'None') != getattr(ns2, k, 'None')
+    ]
     print_keys(ks, ns1, ns2)
     print()
 

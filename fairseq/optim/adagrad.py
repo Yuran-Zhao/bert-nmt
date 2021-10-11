@@ -20,7 +20,11 @@ class Adagrad(FairseqOptimizer):
     def add_args(parser):
         """Add optimizer-specific arguments to the parser."""
         # fmt: off
-        parser.add_argument('--weight-decay', '--wd', default=0.0, type=float, metavar='WD',
+        parser.add_argument('--weight-decay',
+                            '--wd',
+                            default=0.0,
+                            type=float,
+                            metavar='WD',
                             help='weight decay')
         # fmt: on
 
