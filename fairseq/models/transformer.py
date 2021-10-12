@@ -33,6 +33,8 @@ DEFAULT_MAX_TARGET_POSITIONS = 1024
 
 from bert import BertModel
 
+from bart import BARTTokenizer, ParaBARTModel
+
 
 @register_model('transformer')
 class TransformerModel(FairseqEncoderDecoderModel):
@@ -375,6 +377,251 @@ class TransformerS2Model(FairseqEncoderDecoderModel):
         else:
             src_berttokenizer = BertTokenizer.from_pretrained(
                 args.bert_model_name)
+
+        def build_embedding(dictionary, embed_dim, path=None):
+            num_embeddings = len(dictionary)
+            padding_idx = dictionary.pad()
+            emb = Embedding(num_embeddings, embed_dim, padding_idx)
+            # if provided, load from preloaded dictionaries
+            if path:
+                embed_dict = utils.parse_embedding(path)
+                utils.load_embedding(embed_dict, dictionary, emb)
+            return emb
+
+        if args.share_all_embeddings:
+            if src_dict != tgt_dict:
+                raise ValueError(
+                    '--share-all-embeddings requires a joined dictionary')
+            if args.encoder_embed_dim != args.decoder_embed_dim:
+                raise ValueError(
+                    '--share-all-embeddings requires --encoder-embed-dim to match --decoder-embed-dim'
+                )
+            if args.decoder_embed_path and (args.decoder_embed_path !=
+                                            args.encoder_embed_path):
+                raise ValueError(
+                    '--share-all-embeddings not compatible with --decoder-embed-path'
+                )
+            encoder_embed_tokens = build_embedding(src_dict,
+                                                   args.encoder_embed_dim,
+                                                   args.encoder_embed_path)
+            decoder_embed_tokens = encoder_embed_tokens
+            args.share_decoder_input_output_embed = True
+        else:
+            encoder_embed_tokens = build_embedding(src_dict,
+                                                   args.encoder_embed_dim,
+                                                   args.encoder_embed_path)
+            decoder_embed_tokens = build_embedding(tgt_dict,
+                                                   args.decoder_embed_dim,
+                                                   args.decoder_embed_path)
+        bertencoder = BertModel.from_pretrained(args.bert_model_name)
+        args.bert_out_dim = bertencoder.hidden_size
+        encoder = cls.build_encoder(args, src_dict, encoder_embed_tokens)
+        decoder = cls.build_decoder(args, tgt_dict, decoder_embed_tokens)
+
+        return TransformerS2Model(encoder, decoder, bertencoder,
+                                  src_berttokenizer, args.mask_cls_sep, args)
+
+    @classmethod
+    def build_encoder(cls, args, src_dict, embed_tokens):
+        return TransformerS2Encoder(args, src_dict, embed_tokens)
+
+    @classmethod
+    def build_decoder(cls, args, tgt_dict, embed_tokens):
+        return TransformerDecoder(args, tgt_dict, embed_tokens)
+
+    def forward(self, src_tokens, src_lengths, prev_output_tokens, bert_input,
+                **kwargs):
+        """
+        Run the forward pass for an encoder-decoder model.
+
+        First feed a batch of source tokens through the encoder. Then, feed the
+        encoder output and previous decoder outputs (i.e., input feeding/teacher
+        forcing) to the decoder to produce the next outputs::
+
+            encoder_out = self.encoder(src_tokens, src_lengths)
+            return self.decoder(prev_output_tokens, encoder_out)
+
+        Args:
+            src_tokens (LongTensor): tokens in the source language of shape
+                `(batch, src_len)`
+            src_lengths (LongTensor): source sentence lengths of shape `(batch)`
+            prev_output_tokens (LongTensor): previous decoder outputs of shape
+                `(batch, tgt_len)`, for input feeding/teacher forcing
+
+        Returns:
+            tuple:
+                - the decoder's output of shape `(batch, tgt_len, vocab)`
+                - a dictionary with any model-specific outputs
+        """
+        bert_encoder_padding_mask = bert_input.eq(self.berttokenizer.pad())
+        bert_encoder_out, _ = self.bert_encoder(bert_input,
+                                                output_all_encoded_layers=True,
+                                                attention_mask=1. -
+                                                bert_encoder_padding_mask)
+        bert_encoder_out = bert_encoder_out[self.bert_output_layer]
+        if self.mask_cls_sep:
+            bert_encoder_padding_mask += bert_input.eq(self.berttokenizer.cls())
+            bert_encoder_padding_mask += bert_input.eq(self.berttokenizer.sep())
+        bert_encoder_out = bert_encoder_out.permute(1, 0, 2).contiguous()
+        bert_encoder_out = {
+            'bert_encoder_out': bert_encoder_out,
+            'bert_encoder_padding_mask': bert_encoder_padding_mask,
+        }
+        encoder_out = self.encoder(src_tokens,
+                                   src_lengths=src_lengths,
+                                   bert_encoder_out=bert_encoder_out)
+        decoder_out = self.decoder(prev_output_tokens,
+                                   encoder_out=encoder_out,
+                                   bert_encoder_out=bert_encoder_out,
+                                   **kwargs)
+        return decoder_out
+
+
+@register_model('transformers3')
+class TransformerS3Model(FairseqEncoderDecoderModel):
+    """
+    Transformer model from `"Attention Is All You Need" (Vaswani, et al, 2017)
+    <https://arxiv.org/abs/1706.03762>`_.
+
+    Args:
+        encoder (TransformerEncoder): the encoder
+        decoder (TransformerDecoder): the decoder
+
+    The Transformer model provides the following named architectures and
+    command-line arguments:
+
+    .. argparse::
+        :ref: fairseq.models.transformer_parser
+        :prog:
+    """
+    def __init__(self,
+                 encoder,
+                 decoder,
+                 bartencoder,
+                 barttokenizer,
+                 mask_cls_sep=False,
+                 args=None):
+        super().__init__(encoder, decoder, bartencoder, barttokenizer,
+                         mask_cls_sep, args)
+
+    @staticmethod
+    def add_args(parser):
+        """Add model-specific arguments to the parser."""
+        # fmt: off
+        parser.add_argument('--activation-fn',
+                            choices=utils.get_available_activation_fns(),
+                            help='activation function to use')
+        parser.add_argument('--dropout',
+                            type=float,
+                            metavar='D',
+                            help='dropout probability')
+        parser.add_argument('--attention-dropout',
+                            type=float,
+                            metavar='D',
+                            help='dropout probability for attention weights')
+        parser.add_argument('--activation-dropout',
+                            '--relu-dropout',
+                            type=float,
+                            metavar='D',
+                            help='dropout probability after activation in FFN.')
+        parser.add_argument('--encoder-embed-path',
+                            type=str,
+                            metavar='STR',
+                            help='path to pre-trained encoder embedding')
+        parser.add_argument('--encoder-embed-dim',
+                            type=int,
+                            metavar='N',
+                            help='encoder embedding dimension')
+        parser.add_argument('--encoder-ffn-embed-dim',
+                            type=int,
+                            metavar='N',
+                            help='encoder embedding dimension for FFN')
+        parser.add_argument('--encoder-layers',
+                            type=int,
+                            metavar='N',
+                            help='num encoder layers')
+        parser.add_argument('--encoder-attention-heads',
+                            type=int,
+                            metavar='N',
+                            help='num encoder attention heads')
+        parser.add_argument('--encoder-normalize-before',
+                            action='store_true',
+                            help='apply layernorm before each encoder block')
+        parser.add_argument(
+            '--encoder-learned-pos',
+            action='store_true',
+            help='use learned positional embeddings in the encoder')
+        parser.add_argument('--decoder-embed-path',
+                            type=str,
+                            metavar='STR',
+                            help='path to pre-trained decoder embedding')
+        parser.add_argument('--decoder-embed-dim',
+                            type=int,
+                            metavar='N',
+                            help='decoder embedding dimension')
+        parser.add_argument('--decoder-ffn-embed-dim',
+                            type=int,
+                            metavar='N',
+                            help='decoder embedding dimension for FFN')
+        parser.add_argument('--decoder-layers',
+                            type=int,
+                            metavar='N',
+                            help='num decoder layers')
+        parser.add_argument('--decoder-attention-heads',
+                            type=int,
+                            metavar='N',
+                            help='num decoder attention heads')
+        parser.add_argument(
+            '--decoder-learned-pos',
+            action='store_true',
+            help='use learned positional embeddings in the decoder')
+        parser.add_argument('--decoder-normalize-before',
+                            action='store_true',
+                            help='apply layernorm before each decoder block')
+        parser.add_argument('--share-decoder-input-output-embed',
+                            action='store_true',
+                            help='share decoder input and output embeddings')
+        parser.add_argument('--share-all-embeddings',
+                            action='store_true',
+                            help='share encoder, decoder and output embeddings'
+                            ' (requires shared dictionary and embed dim)')
+        parser.add_argument(
+            '--no-token-positional-embeddings',
+            default=False,
+            action='store_true',
+            help=
+            'if set, disables positional embeddings (outside self attention)')
+        parser.add_argument(
+            '--adaptive-softmax-cutoff',
+            metavar='EXPR',
+            help='comma separated list of adaptive softmax cutoff points. '
+            'Must be used with adaptive_loss criterion'),
+        parser.add_argument(
+            '--adaptive-softmax-dropout',
+            type=float,
+            metavar='D',
+            help='sets adaptive softmax dropout for the tail projections')
+        # fmt: on
+
+    @classmethod
+    def build_model(cls, args, task):
+        """Build a new model instance."""
+
+        # make sure all arguments are present in older models
+        base_architecture(args)
+
+        if not hasattr(args, 'max_source_positions'):
+            args.max_source_positions = DEFAULT_MAX_SOURCE_POSITIONS
+        if not hasattr(args, 'max_target_positions'):
+            args.max_target_positions = DEFAULT_MAX_TARGET_POSITIONS
+
+        src_dict, tgt_dict = task.source_dictionary, task.target_dictionary
+        if len(task.datasets) > 0:
+            src_berttokenizer = next(iter(task.datasets.values())).berttokenizer
+        else:
+            # src_berttokenizer = BertTokenizer.from_pretrained(
+            #     args.bert_model_name)
+            src_barttokenizer = BartTokenizer.from_pretrained(args.bart_model)
 
         def build_embedding(dictionary, embed_dim, path=None):
             num_embeddings = len(dictionary)
