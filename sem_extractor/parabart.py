@@ -151,7 +151,7 @@ class ParaBartEncoder(nn.Module):
     def __init__(self, config, embed_tokens):
         super().__init__()
         self.config = config
-
+        self.hidden_size = config.d_model
         self.dropout = config.dropout
         self.embed_tokens = embed_tokens
 

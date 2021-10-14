@@ -10,13 +10,14 @@ from fairseq.data import (
 )
 
 from . import FairseqTask, register_task
+from sem_extractor import BartTokenizer
 
 
 def load_langpair_dataset(data_path, split, src, src_dict, tgt, tgt_dict,
                           combine, dataset_impl, upsample_primary,
                           left_pad_source, left_pad_target,
                           max_source_positions, max_target_positions,
-                          sem_extractor_path):
+                          bart_tokenizer_cache_dir):
     def split_exists(split, src, tgt, lang, data_path):
         filename = os.path.join(data_path,
                                 '{}.{}-{}.{}'.format(split, src, tgt, lang))
@@ -84,7 +85,8 @@ def load_langpair_dataset(data_path, split, src, src_dict, tgt, tgt_dict,
         tgt_dataset = ConcatDataset(tgt_datasets, sample_ratios)
 
     # berttokenizer = BertTokenizer.from_pretrained(bert_model_name)
-    barttokenizer = BartTokenizer.from_pretrained('facebook/bart_base')
+    barttokenizer = BartTokenizer.from_pretrained(
+        'facebook/bart-base', cache_dir=bart_tokenizer_cache_dir)
 
     return LanguagePairDataset(
         src_dataset,
